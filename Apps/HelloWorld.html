@@ -39,17 +39,15 @@
   <script>
     $(function() {
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
+      var dataSourceCollection = new Cesium.DataSourceCollection();
+      var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
 
       $('.button').click(function() { 
         var sql = document.forms['form']['query-text'].value;
 
         var dataSource = new Cesium.GeoJsonDataSource();
-        dataSource.loadUrl('http://127.0.0.1:8000/db/schema/tweet');
-
-        var dataSourceCollection = new Cesium.DataSourceCollection();
-        dataSourceCollection.add(dataSource);
-
-        var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
+        dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(sql));
+        dataSourceDisplay.getDataSources().add(dataSource);
         dataSourceDisplay.update(cesiumWidget.clock.currentTime);
 
         console.log(dataSourceDisplay);
