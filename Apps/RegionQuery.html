@@ -39,15 +39,15 @@
   <script>
     $(function() {
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
+      var dataSource = new Cesium.GeoJsonDataSource();
+      dataSource.getChangedEvent().addEventListener(function() {
+          dataSourceDisplay.update(cesiumWidget.clock.currentTime);
+        });
       var dataSourceCollection = new Cesium.DataSourceCollection();
       var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
+      dataSourceDisplay.getDataSources().add(dataSource);
       
       var handler;
-
-      function clear() {
-        cesiumWidget.scene.getPrimitives().removeAll();
-        handler = handler && handler.destroy();
-      }
 
       function drawExtent(scene, ellipsoid) {
         var DrawExtentHelper = function(scene, handler) {
@@ -57,7 +57,6 @@
           this._finishHandler = handler;
           this._mouseHandler = new Cesium.ScreenSpaceEventHandler(this._canvas);
           this._extentPrimitive = new Cesium.ExtentPrimitive();
-          console.log(this._extentPrimitive);
           this._extentPrimitive.asynchronous = false;
           this._scene.getPrimitives().add(this._extentPrimitive);
         };
@@ -177,18 +176,14 @@
 
           console.log(query);
 
-          var dataSource = new Cesium.GeoJsonDataSource();
           dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(query));
-          dataSourceDisplay.getDataSources().add(dataSource);
-          dataSourceDisplay.update(cesiumWidget.clock.currentTime);
-          console.log("Done");
+          this._scene.getPrimitives().remove(this._extentPrimitive);
         };
         var drawExtentHelper = new DrawExtentHelper(scene, myHandler);
         drawExtentHelper.start();
       }
 
       $('.button').click(function() {
-//        clear();
         drawExtent(cesiumWidget.scene, cesiumWidget.centralBody.getEllipsoid());
       })
     })
