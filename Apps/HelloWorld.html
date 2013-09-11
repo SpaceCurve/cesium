@@ -39,18 +39,21 @@
   <script>
     $(function() {
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
+
+      var dataSource = new Cesium.GeoJsonDataSource();
+      dataSource.getChangedEvent().addEventListener(function() {
+          dataSourceDisplay.update(cesiumWidget.clock.currentTime);
+        });
       var dataSourceCollection = new Cesium.DataSourceCollection();
       var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
+      dataSourceDisplay.getDataSources().add(dataSource);
 
       $('.button').click(function() { 
-        var sql = document.forms['form']['query-text'].value;
+        var query_text = document.forms['form']['query-text'].value;
+        console.log('Request:', query_text);
 
-        var dataSource = new Cesium.GeoJsonDataSource();
-        dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(sql));
-        dataSourceDisplay.getDataSources().add(dataSource);
+        dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(query_text));
         dataSourceDisplay.update(cesiumWidget.clock.currentTime);
-
-        console.log(dataSourceDisplay);
       })
     })
   </script>
