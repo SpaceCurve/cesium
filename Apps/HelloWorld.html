@@ -53,7 +53,6 @@
         console.log('Request:', query_text);
 
         dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(query_text));
-        dataSourceDisplay.update(cesiumWidget.clock.currentTime);
       })
     })
   </script>
