@@ -46,8 +46,26 @@
       var dataSourceCollection = new Cesium.DataSourceCollection();
       var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
       dataSourceDisplay.getDataSources().add(dataSource);
-      
-      var handler;
+
+      var labels = new Cesium.LabelCollection();
+      cesiumWidget.scene.getPrimitives().add(labels);
+      var tooltip = labels.add();
+
+      var pickHandler = new Cesium.ScreenSpaceEventHandler(cesiumWidget.scene.getCanvas());
+      pickHandler.setInputAction(
+        function (movement) {
+          var pickedObject = cesiumWidget.scene.pick(movement.endPosition);
+           if(pickedObject && pickedObject.dynamicObject && pickedObject.dynamicObject.geoJson) {
+             console.log(pickedObject);
+             tooltip.setShow(true);
+             tooltip.setText(pickedObject.dynamicObject.geoJson.properties.text);
+             tooltip.setPosition(pickedObject.getPosition());
+           } else {
+             tooltip.setShow(false);
+           }
+        },
+        Cesium.ScreenSpaceEventType.MOUSE_MOVE
+      );
 
       function drawExtent(scene, ellipsoid) {
         var DrawExtentHelper = function(scene, handler) {
