@@ -30,6 +30,14 @@
           z-index: 5
       }
 
+      #properties {
+          position: absolute;
+          top: 5px;
+          left: 5px;
+          color: white;
+          z-index: 5;
+      }
+
       body {
           padding: 0;
           margin: 0;
@@ -37,6 +45,21 @@
       }
   </style>
   <script>
+  var entityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': '&quot;',
+    "'": '&#39;',
+    "/": '&#x2F;'
+  };
+
+  function escapeHtml(string) {
+    return String(string).replace(/[&<>"'\/]/g, function (s) {
+      return entityMap[s];
+    });
+  }
+
   function drawExtent(scene, ellipsoid, handler) {
     var DrawExtentHelper = function(scene, handler) {
       this._canvas = scene.getCanvas();
@@ -166,6 +189,25 @@
       var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
       dataSourceDisplay.getDataSources().add(dataSource);
 
+      var pickHandler = new Cesium.ScreenSpaceEventHandler(cesiumWidget.scene.getCanvas());
+      pickHandler.setInputAction(
+        function (movement) {
+          var pickedObject = cesiumWidget.scene.pick(movement.endPosition);
+          if(pickedObject && pickedObject.dynamicObject && pickedObject.dynamicObject.geoJson && pickedObject.dynamicObject.geoJson.properties) {
+            var text = "";
+            for(var key in pickedObject.dynamicObject.geoJson.properties) {
+              var val = pickedObject.dynamicObject.geoJson.properties[key];
+              text += escapeHtml(key) + ": " + escapeHtml(val) + "<br/>";
+            }
+            $('#properties').html(text);
+          } else {
+            $('#properties').html("");
+          }
+        },
+        Cesium.ScreenSpaceEventType.MOUSE_MOVE
+      );
+
+
       $('#query-button').click(function() { 
         var query_text = document.forms['form']['query-text'].value;
         console.log('Request:', query_text);
@@ -203,6 +245,7 @@
         <input id="tweet-button" class="button" type="button" value="Tweets in Region..."/>
         <input id="radar-button" class="button" type="button" value="Radar in Region..."/>
       </form>
+      <div id="properties"/>
     </div>
   </div>
 </body>
