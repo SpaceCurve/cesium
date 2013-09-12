@@ -197,7 +197,7 @@
             var text = "";
             for(var key in pickedObject.dynamicObject.geoJson.properties) {
               var val = pickedObject.dynamicObject.geoJson.properties[key];
-              text += escapeHtml(key) + ": " + escapeHtml(val) + "<br/>";
+              text += escapeHtml(key) + ": " + val + "<br/>";
             }
             $('#properties').html(text);
           } else {
