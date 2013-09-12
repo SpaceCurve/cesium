@@ -215,9 +215,9 @@
         dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(query_text));
       })
 
-      $('#tweet-button').click(function() {
+      function makeHandler(table) {
         var handler = function(e) {
-          var query = "SELECT * FROM schema.tweet_time as t WHERE t.\"geometry\".ST_intersects(ST_Geography('POLYGON((";
+          var query = "SELECT * FROM " + table + " as t WHERE t.\"geometry\".ST_intersects(ST_Geography('POLYGON((";
           var toDeg = Cesium.Math.toDegrees;
           query += toDeg(e.west) + " " + toDeg(e.north) + ", ";
           query += toDeg(e.west) + " " + toDeg(e.south) + ", ";
@@ -230,8 +230,19 @@
 
           dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(query));
         };
-        drawExtent(cesiumWidget.scene, cesiumWidget.centralBody.getEllipsoid(), handler);
-      })
+        return handler;
+      }
+
+      var tweetHandler = makeHandler("schema.tweet_time");
+      var radarHandler = makeHandler("schema.radar");
+
+      $('#tweet-button').click(function() {
+        drawExtent(cesiumWidget.scene, cesiumWidget.centralBody.getEllipsoid(), tweetHandler);
+      });
+
+      $('#radar-button').click(function() {
+        drawExtent(cesiumWidget.scene, cesiumWidget.centralBody.getEllipsoid(), radarHandler);
+      });
     })
   </script>
 </head>
