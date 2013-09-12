@@ -55,10 +55,10 @@
       pickHandler.setInputAction(
         function (movement) {
           var pickedObject = cesiumWidget.scene.pick(movement.endPosition);
-           if(pickedObject && pickedObject.dynamicObject && pickedObject.dynamicObject.geoJson) {
+           if(pickedObject && pickedObject.dynamicObject && pickedObject.dynamicObject.geoJson && pickedObject.dynamicObject.geoJson.properties) {
              console.log(pickedObject);
              tooltip.setShow(true);
-             tooltip.setText(pickedObject.dynamicObject.geoJson.properties.text);
+             tooltip.setText(pickedObject.dynamicObject.geoJson.properties);
              tooltip.setPosition(pickedObject.getPosition());
            } else {
              tooltip.setShow(false);
@@ -184,7 +184,6 @@
         var myHandler = function(e) {
           var query = "SELECT * FROM schema.tweet as t WHERE t.\"geometry\".ST_intersects(ST_Geography('POLYGON((";
           var toDeg = Cesium.Math.toDegrees;
-          // -73.8 40.9, -74.4 40.9, -74.4 40.46, -73.8 40.46, -73.8 40.9
           query += toDeg(e.west) + " " + toDeg(e.north) + ", ";
           query += toDeg(e.west) + " " + toDeg(e.south) + ", ";
           query += toDeg(e.east) + " " + toDeg(e.south) + ", ";
@@ -201,7 +200,7 @@
         drawExtentHelper.start();
       }
 
-      $('.button').click(function() {
+      $(document.getElementById('region')).click(function() {
         drawExtent(cesiumWidget.scene, cesiumWidget.centralBody.getEllipsoid());
       })
     })
@@ -211,7 +210,7 @@
   <div id="cesiumContainer"></div>
     <div id="toolbar">
       <form id="form" action="" onsubmit="return false">
-        <input id="query-button" class="button" type="submit" value="Tweets in Region..."/>
+        <input id="region" class="button" type="button" value="Tweets in Region..."/>
       </form>
     </div>
   </div>
