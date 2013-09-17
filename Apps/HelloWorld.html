@@ -31,6 +31,14 @@
           z-index: 5
       }
 
+      #query-instance {
+          width: 100px;
+      }
+
+      #query-text {
+          width: 500px;
+      }
+
       #properties {
           position: absolute;
           top: 5px;
@@ -193,9 +201,10 @@
 
       var pageData = '';
       var socket = io.connect();
-      socket.on('connect', function (data) { console.log(data); });
+      socket.on('connect', function () { console.log('Connected'); });
       socket.on('data', function (data) { pageData += data.chunk; });
       socket.on('end', function (data) {
+          console.log('Result:', data);
           var lines = pageData.split(/\r?\n/);
           lines.pop();
           var featureCollection = { type: 'FeatureCollection', features: [] };
@@ -224,9 +233,11 @@
 
 
       $('#query-button').click(function() { 
-        var queryText = document.forms['form']['query-text'].value;
-        socket.emit('query', {text: queryText});
-        console.log('Request:', queryText);
+        var data = { instance: document.forms['form']['query-instance'].value,
+                     text: document.forms['form']['query-text'].value
+                   }
+        socket.emit('query', data);
+        console.log('Request:', data);
       })
 
       function makeHandler(table) {
@@ -240,9 +251,9 @@
           query += toDeg(e.west) + " " + toDeg(e.north);
           query += "))'));";
 
-          console.log(query);
-
-          dataSource.loadUrl('http://127.0.0.1:8000/db/' + encodeURIComponent(query));
+          var data = { instance: 'db', text: query }
+          socket.emit('query', data);
+          console.log('Request:', data);
         };
         return handler;
       }
@@ -264,7 +275,8 @@
   <div id="cesiumContainer"></div>
     <div id="toolbar">
       <form id="form" action="" onsubmit="return false">
-        <input id="query-text" type="text"/>
+        <input id="query-instance" type="instance" value="scdb_config"/>
+        <input id="query-text" type="text" value="select * from scdb.scdb_tables;"/>
         <input id="query-button" class="button" type="submit" value="query"/>
         <br/>
         <input id="tweet-button" class="button" type="button" value="Tweets in Region..."/>
