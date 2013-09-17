@@ -3,7 +3,6 @@ var con = require('connect');
 var app = con.createServer(con.static(__dirname)).listen(8000);
 var io = require('socket.io').listen(app, { log: false });
 io.sockets.on('connection', function (socket) {
-  socket.emit('connect');
   socket.on('query', function (data) {
     console.log('Request:', data);
     require('http').get(
