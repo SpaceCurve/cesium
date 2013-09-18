@@ -272,6 +272,25 @@
       $('#clear-button').click(function() {
         dataSource.getDynamicObjectCollection().clear()
       });
+
+      $('#file-button').click(function() {
+        $('#file-picker').trigger('click');
+      })
+
+      $('#file-picker').change(function(f) {
+        if(this.files.length == 0) { return; }
+        reader = new FileReader();
+        
+        reader.onload = function() {
+          var lines = reader.result.split(/\r?\n/);
+          lines.pop();
+          var featureCollection = { type: 'FeatureCollection', features: [] };
+          lines.map(function (line) { featureCollection.features.push(JSON.parse(line)[1]); });
+          dataSource.process(featureCollection);
+        }
+
+        reader.readAsText(this.files[0]);
+      })
     })
   </script>
 </head>
@@ -285,6 +304,9 @@
         <br/>
         <input id="tweet-button" class="button" type="button" value="Tweets in Region..."/>
         <input id="radar-button" class="button" type="button" value="Radar in Region..."/>
+        <input id="file-button"  class="button" type="button" value="Load from file..."/>
+        <input id="file-picker"  class="button" type="file" style="display:none"/>
+
         <br/>
         <input id="clear-button" class="button" type="button" value="Clear"/>
       </form>
