@@ -188,40 +188,59 @@
     drawExtentHelper.start();
   }
 
+  function LoadState(loader) {
+    this.loader = loader;
+    this.prefix = '';
+  }
+
+  LoadState.prototype.consume = function(data) {
+    var start = 0;
+    var end = data.indexOf("\n");
+    while(end >= 0) {
+      this.loader.process(JSON.parse(this.prefix + data.substring(start, end))[1]);
+      this.prefix = '';
+      start = end + 1;
+      end = data.indexOf("\n", start);
+    }
+    this.prefix += data.substring(start);
+  };
+
     $(function() {
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
 
-      var dataSource = new Cesium.GeoJsonDataSource();
-      dataSource.getChangedEvent().addEventListener(function() {
-          dataSourceDisplay.update(cesiumWidget.clock.currentTime);
-        });
-      var dataSourceCollection = new Cesium.DataSourceCollection();
-      var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
-      dataSourceDisplay.getDataSources().add(dataSource);
-
-      var pageData = '';
       var socket = io.connect();
+      var streams = [];
+
+      var atlas = cesiumWidget.scene.getContext().createTextureAtlas();
+      var loader = new Cesium.GeoJsonLoader(cesiumWidget.centralBody.getEllipsoid(), cesiumWidget.scene, atlas);
+
+      var circle = new Image();
+      circle.onload = function() {
+        atlas.addImage(circle);
+      };
+      circle.src = 'maki/circle-24.png';
+
       socket.on('connect', function () { console.log('Connected'); });
-      socket.on('data', function (data) { pageData += data.chunk; });
+      socket.on('data', function (data) {
+        streams[data.id].consume(data.chunk);
+      });
       socket.on('end', function (data) {
-          console.log('Result:', data);
-          var lines = pageData.split(/\r?\n/);
-          lines.pop();
-          var featureCollection = { type: 'FeatureCollection', features: [] };
-          lines.map(function (line) { featureCollection.features.push(JSON.parse(line)[1]); });
-          dataSource.load(featureCollection);
-          pageData = '';
+        console.log('Result:', data);
+        if(streams[data.id].prefix != '') {
+          streams[data.id].consume('\n');
+        }
+        loader.flush();
       });
 
       var pickHandler = new Cesium.ScreenSpaceEventHandler(cesiumWidget.scene.getCanvas());
       pickHandler.setInputAction(
         function (movement) {
           var pickedObject = cesiumWidget.scene.pick(movement.endPosition);
-          if(pickedObject && pickedObject.dynamicObject && pickedObject.dynamicObject.geoJson && pickedObject.dynamicObject.geoJson.properties) {
+          if(pickedObject && pickedObject.properties) {
             var text = "";
-            for(var key in pickedObject.dynamicObject.geoJson.properties) {
-              var val = pickedObject.dynamicObject.geoJson.properties[key];
-              text += escapeHtml(key) + ": " + val + "<br/>";
+            for(var key in pickedObject.properties) {
+              var val = pickedObject.properties[key];
+              text += escapeHtml(key) + ": " + escapeHtml(val) + "<br/>";
             }
             $('#properties').html(text);
           } else {
@@ -231,6 +250,14 @@
         Cesium.ScreenSpaceEventType.MOUSE_MOVE
       );
 
+      var idCounter = 0;
+      function doQuery(instance, text) {
+        var req = { id: idCounter, instance: instance, text: text };
+        console.log('Request:', req);
+        socket.emit('query', req);
+        streams.push(new LoadState(loader)); // FIXME: Slow space leak
+        idCounter = idCounter+1;
+      }
 
       $('#query-button').click(function() { 
         var data = { instance: document.forms['form']['query-instance'].value,
@@ -270,7 +297,7 @@
       });
 
       $('#clear-button').click(function() {
-        dataSource.getDynamicObjectCollection().clear()
+        loader.clear();
       });
 
       $('#file-button').click(function() {
@@ -286,7 +313,7 @@
           lines.pop();
           var featureCollection = { type: 'FeatureCollection', features: [] };
           lines.map(function (line) { featureCollection.features.push(JSON.parse(line)[1]); });
-          dataSource.process(featureCollection);
+          loader.process(featureCollection);
         }
 
         reader.readAsText(this.files[0]);
