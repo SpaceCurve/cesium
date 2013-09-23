@@ -8,12 +8,12 @@ io.sockets.on('connection', function (socket) {
     require('http').get(
       'http://127.0.0.1:8080/' + data.instance + '/' + encodeURIComponent(data.text),
       function (response) {
-        var data = { status: response.statusCode };
+        var data = { id: id, status: response.statusCode };
         if (data.status == 200) {
           response.on('data', function (chunk) { socket.emit('data', { chunk: chunk.toString() }); });
           response.on('end', function () { socket.emit('end', data); });
         } else {
-          socket.emit('end', data); 
+          socket.emit('end', data);
         }
         console.log('Response:', data);
       }
