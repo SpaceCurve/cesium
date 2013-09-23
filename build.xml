@@ -25,14 +25,12 @@
 		<copy todir="Build">
 			<fileset dir="Apps/">
 				<include name="HelloWorld.html" />
-				<include name="RegionQuery.html" />
 				<include name="index.html" />
 				<include name="server.js" />
 			</fileset>
 		</copy>
 
 		<replace file="Build/HelloWorld.html" token="../Build/" value="" />
-		<replace file="Build/RegionQuery.html" token="../Build/" value="" />
 		<replace file="Build/index.html" token="../Build/" value="" />
 	</target>
 
@@ -63,7 +61,6 @@
 				<include name="Cesium/**" />
 				<include name="Documentation/**" />
 				<include name="HelloWorld.html" />
-				<include name="RegionQuery.html" />
 				<include name="index.html" />
 				<include name="server.js" />
 			</fileset>
@@ -80,7 +77,6 @@
 			<include name="Specs/**" />
 			<include name="ThirdParty/**" />
 			<include name="HelloWorld.html" />
-			<include name="RegionQuery.html" />
 			<include name="index.html" />
 			<include name="server.js" />
 			<include name="LICENSE.md" />
