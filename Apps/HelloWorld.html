@@ -196,13 +196,20 @@
   LoadState.prototype.consume = function(data) {
     var start = 0;
     var end = data.indexOf("\n");
-    while(end >= 0) {
-      this.loader.process(JSON.parse(this.prefix + data.substring(start, end))[1]);
-      this.prefix = '';
-      start = end + 1;
-      end = data.indexOf("\n", start);
+    try {
+      while(end >= 0) {
+        var str = this.prefix + data.substring(start, end);
+        this.prefix = '';
+        try {
+          this.loader.process(JSON.parse(str)[1]);
+        } finally {
+          start = end + 1;
+          end = data.indexOf("\n", start);
+        }
+      }
+    } finally {
+      this.prefix += data.substring(start);
     }
-    this.prefix += data.substring(start);
   };
 
     $(function() {
