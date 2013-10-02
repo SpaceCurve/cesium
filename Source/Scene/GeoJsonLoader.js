@@ -105,33 +105,39 @@ define([
         }
     };
 
-    GeoJsonLoader.prototype.flush = function() {
-        console.log('Flushing ' + (this.pendingTris.length  + this.pendingLines.length) + ' features');
+    GeoJsonLoader.prototype.flush = function(limit) {
+        var numTris = this.pendingTris.length;
+        var numLines = this.pendingLines.length;
+        if(defined(limit)) {
+            numTris = Math.min(Math.floor(limit/2), this.pendingTris.length);
+            numLines = Math.min(limit - numTris, this.pendingLines.length);
+            numTris = Math.min(limit - numLines, this.pendingTris.length);
+        }
+
+        console.log('Flushing ' + numTris + ' polygons and ' + numLines + ' polylines.');
 
         if(this.pendingTris.length > 0) {
             var primitive = new Primitive({
-                geometryInstances : this.pendingTris,
+                geometryInstances : this.pendingTris.splice(0, numTris),
                 appearance : new PerInstanceColorAppearance({
                     closed: true,
                     translucent: true,
                     flat: true
                 })
             });
-            this.pendingTris = [];
             this.scene.getPrimitives().add(primitive);
             this.drawing.push(primitive);
         }
 
         if(this.pendingLines.length > 0) {
             var primitive = new Primitive({
-                geometryInstances : this.pendingLines,
+                geometryInstances : this.pendingLines.splice(0, numLines),
                 appearance : new PerInstanceColorAppearance({
                     closed: true,
                     translucent: true,
                     flat: true
                 })
             });
-            this.pendingLines = [];
             this.scene.getPrimitives().add(primitive);
             this.drawing.push(primitive);
         }
