@@ -43,18 +43,18 @@ define([
     };
 
     function parsePolygon(ellipsoid, coordinates) {
-        return PolygonGeometry.createGeometry(new PolygonGeometry({
+        return new PolygonGeometry({
             polygonHierarchy: {
                 positions: translateCoords(ellipsoid, coordinates[0]), // TODO: Holes
                 vertexFormat : PerInstanceColorAppearance.VERTEX_FORMAT
-            }}));
+            }});
     };
 
     function parseLineString(ellipsoid, coordinates) {
-        return SimplePolylineGeometry.createGeometry(new SimplePolylineGeometry({
+        return new SimplePolylineGeometry({
           positions : translateCoords(ellipsoid, coordinates),
           vertexFormat : PerInstanceColorAppearance.VERTEX_FORMAT
-        }));
+        });
     };
 
     var geometryParser = {
