@@ -84,7 +84,6 @@ define([
       numLines = Math.min(limit - numTris, this.lineBuf.length);
       numTris = Math.min(limit - numLines, this.polyBuf.length);
     }
-    console.log('Flushing ' + numTris + ' polygons and ' + numLines + ' polylines.');
 
     if(this.polyBuf.length > 0) {
       var tris = new Primitive({
