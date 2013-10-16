@@ -64,7 +64,7 @@ define([
   GeometryBuffer.prototype.pushPolygon = function(hierarchy, properties, appearance) {
     appearance = defaultValue(appearance, {});
     var color = defaultValue(appearance.color, Color.WHITE);
-    this.lineBuf.push(new GeometryInstance({
+    this.polyBuf.push(new GeometryInstance({
       id : { properties : properties },
       geometry : new PolygonGeometry({
         polygonHierarchy : { positions : hierarchy },
