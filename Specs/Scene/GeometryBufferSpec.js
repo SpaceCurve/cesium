@@ -70,8 +70,9 @@ defineSuite([
         buffer.pushLines(points);
         buffer.pushPolygon(points);
         buffer.flush();
-        
-        expect(scene.getPrimitives().getLength()).toEqual(2);
+
+        // Line primitve + Polygon primitive + Billboard primitive = 3
+        expect(scene.getPrimitives().getLength()).toEqual(3);
     });
 
     it('removes created primitives on clear', function() {
@@ -80,7 +81,9 @@ defineSuite([
         buffer.flush();
 
         buffer.clear();
-        
-        expect(scene.getPrimitives().getLength()).toEqual(0);
+
+        // Billboard primitive remains
+        expect(scene.getPrimitives().getLength()).toEqual(1);
+        expect(buffer.billboards._billboards.length).toEqual(0);
     });
 });
