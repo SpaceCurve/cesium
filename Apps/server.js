@@ -7,6 +7,7 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('query', function (data) {
     console.log('Request:', data);
+    var id = data.id;
     require('http').get(
       'http://127.0.0.1:8080/' + data.instance + '/' + encodeURIComponent(data.text),
       function (response) {
