@@ -61,13 +61,13 @@ define([
     }));
   };
 
-  GeometryBuffer.prototype.pushPolygon = function(hierarchy, properties, appearance) {
+  GeometryBuffer.prototype.pushPolygon = function(positions, properties, appearance) {
     appearance = defaultValue(appearance, {});
     var color = defaultValue(appearance.color, Color.WHITE);
     this.polyBuf.push(new GeometryInstance({
       id : { properties : properties },
-      geometry : new PolygonGeometry({
-        polygonHierarchy : { positions : hierarchy },
+      geometry : PolygonGeometry.fromPositions({
+        positions : positions,
         vertexFormat : PerInstanceColorAppearance.FLAT_VERTEX_FORMAT
       }),
       attributes : {
