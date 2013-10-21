@@ -64,11 +64,13 @@ define([
   GeometryBuffer.prototype.pushPolygon = function(positions, properties, appearance) {
     appearance = defaultValue(appearance, {});
     var color = defaultValue(appearance.color, Color.WHITE);
+    var height = defaultValue(appearance.height, 0);
     this.polyBuf.push(new GeometryInstance({
       id : { properties : properties },
       geometry : PolygonGeometry.fromPositions({
         positions : positions,
-        vertexFormat : PerInstanceColorAppearance.FLAT_VERTEX_FORMAT
+        vertexFormat : PerInstanceColorAppearance.FLAT_VERTEX_FORMAT,
+        height : height
       }),
       attributes : {
         color : ColorGeometryInstanceAttribute.fromColor(color)
