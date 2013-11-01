@@ -43,14 +43,14 @@ define([
       imageIndex : imageIndex,
       position : coordinates
     });
-    billboard.properties = properties;
+    billboard.id = properties;
   };
 
   GeometryBuffer.prototype.pushLines = function(coordinates, properties, appearance) {
     appearance = defaultValue(appearance, {});
     var color = defaultValue(appearance.color, Color.WHITE);
     this.lineBuf.push(new GeometryInstance({
-      id : { properties : properties },
+      id : properties,
       geometry : new SimplePolylineGeometry({
         positions : coordinates,
         vertexFormat : PerInstanceColorAppearance.FLAT_VERTEX_FORMAT
@@ -66,7 +66,7 @@ define([
     var color = defaultValue(appearance.color, Color.WHITE);
     var height = defaultValue(appearance.height, 0);
     this.polyBuf.push(new GeometryInstance({
-      id : { properties : properties },
+      id : properties,
       geometry : PolygonGeometry.fromPositions({
         positions : positions,
         vertexFormat : PerInstanceColorAppearance.FLAT_VERTEX_FORMAT,
