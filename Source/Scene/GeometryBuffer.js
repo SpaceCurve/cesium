@@ -38,12 +38,12 @@ define([
     appearance = defaultValue(appearance, {});
     var color = defaultValue(appearance.color, Color.WHITE);
     var imageIndex = defaultValue(appearance.imageIndex, 0);
-    var billboard = this.billboards.add({
+    this.billboards.add({
       color : color,
       imageIndex : imageIndex,
-      position : coordinates
+      position : coordinates,
+      id : properties
     });
-    billboard.id = properties;
   };
 
   GeometryBuffer.prototype.pushLines = function(coordinates, properties, appearance) {
