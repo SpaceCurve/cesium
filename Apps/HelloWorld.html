@@ -188,19 +188,35 @@
     drawExtentHelper.start();
   }
 
+  function LoadState(loader) {
+    this.loader = loader;
+    this.prefix = '';
+  }
+
+  LoadState.prototype.consume = function(data) {
+    var start = 0;
+    var end = data.indexOf("\n");
+    try {
+      while(end >= 0) {
+        var str = this.prefix + data.substring(start, end);
+        this.prefix = '';
+        try {
+          this.loader.process(JSON.parse(str)[1]);
+        } finally {
+          start = end + 1;
+          end = data.indexOf("\n", start);
+        }
+      }
+    } finally {
+      this.prefix += data.substring(start);
+    }
+  };
+
     $(function() {
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
 
-      var dataSource = new Cesium.GeoJsonDataSource();
-      dataSource.getChangedEvent().addEventListener(function() {
-          dataSourceDisplay.update(cesiumWidget.clock.currentTime);
-        });
-      var dataSourceCollection = new Cesium.DataSourceCollection();
-      var dataSourceDisplay = new Cesium.DataSourceDisplay(cesiumWidget.scene, dataSourceCollection);
-      dataSourceDisplay.getDataSources().add(dataSource);
-
-      var pageData = '';
       var socket = io.connect();
+<<<<<<< HEAD
 
   function LoadState(loader) {
     this.loader = loader;
@@ -230,6 +246,8 @@
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
 
       var socket = io.connect();
+=======
+>>>>>>> 33d8be10c949974a626f6199785ccd7c7caa2676
       var streams = [];
 
       var atlas = cesiumWidget.scene.getContext().createTextureAtlas();
@@ -242,7 +260,9 @@
       circle.src = 'maki/circle-24.png';
 
       socket.on('connect', function () { console.log('Connected'); });
-      socket.on('data', function (data) { pageData += data.chunk; });
+      socket.on('data', function (data) {
+        streams[data.id].consume(data.chunk);
+      });
       socket.on('end', function (data) {
         console.log('Result:', data);
         if(streams[data.id].prefix != '') {
@@ -257,9 +277,12 @@
           var pickedObject = cesiumWidget.scene.pick(movement.endPosition);
           if(pickedObject && pickedObject.properties) {
             var text = "";
+<<<<<<< HEAD
             for(var key in pickedObject.dynamicObject.geoJson.properties) {
               var val = pickedObject.dynamicObject.geoJson.properties[key];
               text += escapeHtml(key) + ": " + val + "<br/>";
+=======
+>>>>>>> 33d8be10c949974a626f6199785ccd7c7caa2676
             for(var key in pickedObject.properties) {
               var val = pickedObject.properties[key];
               text += escapeHtml(key) + ": " + escapeHtml(val) + "<br/>";
