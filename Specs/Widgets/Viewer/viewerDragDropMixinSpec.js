@@ -113,7 +113,7 @@ defineSuite([
         EventHelper.fireMockEvent(viewer._handleDrop, mockEvent);
 
         waitsFor(function() {
-            return viewer.dataSources.getLength() === 1;
+            return viewer.dataSources.length === 1;
         });
 
         runs(function() {
@@ -148,7 +148,7 @@ defineSuite([
         EventHelper.fireMockEvent(viewer._handleDrop, mockEvent);
 
         waitsFor(function() {
-            return viewer.dataSources.getLength() === 2;
+            return viewer.dataSources.length === 2;
         });
 
         runs(function() {
@@ -186,7 +186,7 @@ defineSuite([
         EventHelper.fireMockEvent(viewer._handleDrop, mockEvent);
 
         waitsFor(function() {
-            return viewer.dataSources.getLength() === 2;
+            return viewer.dataSources.length === 2;
         });
 
         runs(function() {
@@ -204,7 +204,7 @@ defineSuite([
         });
 
         waitsFor(function() {
-            return viewer.dataSources.getLength() === 4;
+            return viewer.dataSources.length === 4;
         });
 
         runs(function() {
@@ -223,7 +223,7 @@ defineSuite([
         });
 
         waitsFor(function() {
-            return viewer.dataSources.getLength() === 2;
+            return viewer.dataSources.length === 2;
         });
 
         runs(function() {
@@ -238,7 +238,7 @@ defineSuite([
         });
     });
 
-    it('onDropError is raised on exception', function() {
+    it('dropError is raised on exception', function() {
         var mockEvent = {
             dataTransfer : {
                 files : [{
@@ -257,7 +257,7 @@ defineSuite([
 
         var spyListener = jasmine.createSpy('listener');
 
-        viewer.onDropError.addEventListener(spyListener);
+        viewer.dropError.addEventListener(spyListener);
         EventHelper.fireMockEvent(viewer._handleDrop, mockEvent);
 
         waitsFor(function() {
@@ -267,11 +267,11 @@ defineSuite([
         runs(function() {
             expect(spyListener).toHaveBeenCalledWith(viewer, 'czml1.czml', jasmine.any(SyntaxError));
 
-            viewer.onDropError.removeEventListener(spyListener);
+            viewer.dropError.removeEventListener(spyListener);
         });
     });
 
-    it('onDropError is raised FileReader error', function() {
+    it('dropError is raised FileReader error', function() {
         var mockEvent = {
             dataTransfer : {
                 files : [{
@@ -290,7 +290,7 @@ defineSuite([
 
         var spyListener = jasmine.createSpy('listener');
 
-        viewer.onDropError.addEventListener(spyListener);
+        viewer.dropError.addEventListener(spyListener);
         EventHelper.fireMockEvent(viewer._handleDrop, mockEvent);
 
         waitsFor(function() {
@@ -300,7 +300,7 @@ defineSuite([
         runs(function() {
             expect(spyListener).toHaveBeenCalledWith(viewer, mockEvent.dataTransfer.files[0].name, mockEvent.dataTransfer.files[0].errorMessage);
 
-            viewer.onDropError.removeEventListener(spyListener);
+            viewer.dropError.removeEventListener(spyListener);
         });
     });
 
@@ -378,7 +378,7 @@ defineSuite([
     it('throws with undefined viewer', function() {
         expect(function() {
             viewerDragDropMixin(undefined);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws with non-existant string container', function() {
@@ -387,7 +387,7 @@ defineSuite([
             viewer.extend(viewerDragDropMixin, {
                 dropTarget : 'doesNotExist'
             });
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws if dropTarget property already added by another mixin.', function() {
@@ -395,7 +395,7 @@ defineSuite([
         viewer.dropTarget = true;
         expect(function() {
             viewer.extend(viewerDragDropMixin);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws if dropEnabled property already added by another mixin.', function() {
@@ -403,15 +403,15 @@ defineSuite([
         viewer.dropEnabled = true;
         expect(function() {
             viewer.extend(viewerDragDropMixin);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
-    it('throws if onDropError property already added by another mixin.', function() {
+    it('throws if dropError property already added by another mixin.', function() {
         viewer = new Viewer(container);
-        viewer.onDropError = true;
+        viewer.dropError = true;
         expect(function() {
             viewer.extend(viewerDragDropMixin);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws if clearOnDrop property already added by another mixin.', function() {
@@ -419,7 +419,7 @@ defineSuite([
         viewer.clearOnDrop = true;
         expect(function() {
             viewer.extend(viewerDragDropMixin);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('setting dropTarget to undefined throws exception', function() {
@@ -427,6 +427,6 @@ defineSuite([
         viewer.extend(viewerDragDropMixin);
         expect(function() {
             viewer.dropTarget = undefined;
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
-});
+}, 'WebGL');

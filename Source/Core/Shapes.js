@@ -19,7 +19,7 @@ define([
         Matrix3) {
     "use strict";
 
-    function _computeEllipseQuadrant(cb, cbRadius, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, bearing,
+    function _computeEllipseQuadrant(cb, cbRadius, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, rotation,
                                      thetaPts, thetaPtsIndex, offset, clockDir, ellipsePts, ellipsePtsIndex, numPts) {
         var angle;
         var theta;
@@ -33,7 +33,7 @@ define([
         for (var i = 0; i < numPts; i++, thetaPtsIndex += clockDir, ++ellipsePtsIndex) {
             theta = (clockDir > 0) ? (thetaPts[thetaPtsIndex] + offset) : (offset - thetaPts[thetaPtsIndex]);
 
-            azimuth = theta + bearing;
+            azimuth = theta + rotation;
 
             temp = -Math.cos(azimuth);
 
@@ -72,7 +72,7 @@ define([
      *
      * @exports Shapes
      *
-     * @demo <a href="http://cesium.agi.com/Cesium/Apps/Sandcastle/index.html?src=Circles%20and%20Ellipses.html">Cesium Sandcastle Circles and Ellipses Demo</a>
+     * @demo <a href="http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Circles%20and%20Ellipses.html">Cesium Sandcastle Circles and Ellipses Demo</a>
      */
     var Shapes = {
         /**
@@ -91,7 +91,6 @@ define([
          * @param {Number} radius The radius in meters.
          * @param {Number} [granularity] The angular distance between points on the circle.
          *
-         * @exception {DeveloperError} ellipsoid, center, and radius are required.
          * @exception {DeveloperError} radius must be greater than zero.
          * @exception {DeveloperError} granularity must be greater than zero.
          *
@@ -100,24 +99,25 @@ define([
          *
          * @example
          * // Create a polyline of a circle
-         * var polyline = new Polyline();
-         * polyline.setPositions(Shapes.computeCircleBoundary(
+         * var polyline = new Cesium.Polyline();
+         * polyline.setPositions(Cesium.Shapes.computeCircleBoundary(
          *   ellipsoid, ellipsoid.cartographicToCartesian(
-         *     Cartographic.fromDegrees(-75.59777, 40.03883, 0.0)), 100000.0));
+         *     Cesium.Cartographic.fromDegrees(-75.59777, 40.03883, 0.0)), 100000.0));
          */
         computeCircleBoundary : function(ellipsoid, center, radius, granularity) {
+            granularity = defaultValue(granularity, CesiumMath.RADIANS_PER_DEGREE);
+
+            //>>includeStart('debug', pragmas.debug);
             if (!defined(ellipsoid) || !defined(center) || !defined(radius)) {
                 throw new DeveloperError('ellipsoid, center, and radius are required.');
             }
-
             if (radius <= 0.0) {
                 throw new DeveloperError('radius must be greater than zero.');
             }
-
-            granularity = defaultValue(granularity, CesiumMath.RADIANS_PER_DEGREE);
             if (granularity <= 0.0) {
                 throw new DeveloperError('granularity must be greater than zero.');
             }
+            //>>includeEnd('debug');
 
             return this.computeEllipseBoundary(ellipsoid, center, radius, radius, 0, granularity);
         },
@@ -137,10 +137,9 @@ define([
          * @param {Cartesian3} center The ellipse's center point in the fixed frame.
          * @param {Number} semiMajorAxis The length of the ellipse's semi-major axis in meters.
          * @param {Number} semiMinorAxis The length of the ellipse's semi-minor axis in meters.
-         * @param {Number} [bearing] The angle from north (clockwise) in radians. The default is zero.
+         * @param {Number} [rotation] The angle from north (clockwise) in radians. The default is zero.
          * @param {Number} [granularity] The angular distance between points on the circle.
          *
-         * @exception {DeveloperError} ellipsoid, center, semiMajorAxis, and semiMinorAxis are required.
          * @exception {DeveloperError} Semi-major and semi-minor axes must be greater than zero.
          * @exception {DeveloperError} granularity must be greater than zero.
          *
@@ -151,26 +150,26 @@ define([
          *
          * @example
          * // Create a filled ellipse.
-         * var polygon = new Polygon();
-         * polygon.setPositions(Shapes.computeEllipseBoundary(
+         * var polygon = new Cesium.Polygon();
+         * polygon.setPositions(Cesium.Shapes.computeEllipseBoundary(
          *   ellipsoid, ellipsoid.cartographicToCartesian(
-         *      Cartographic.fromDegrees(-75.59777, 40.03883)), 500000.0, 300000.0, Math.toRadians(60)));
+         *      Cesium.Cartographic.fromDegrees(-75.59777, 40.03883)), 500000.0, 300000.0, Cesium.Math.toRadians(60)));
          */
-        computeEllipseBoundary : function(ellipsoid, center, semiMajorAxis, semiMinorAxis, bearing, granularity) {
+        computeEllipseBoundary : function(ellipsoid, center, semiMajorAxis, semiMinorAxis, rotation, granularity) {
+            rotation = defaultValue(rotation, 0.0);
+            granularity = defaultValue(granularity, CesiumMath.RADIANS_PER_DEGREE);
+
+            //>>includeStart('debug', pragmas.debug);
             if (!defined(ellipsoid) || !defined(center) || !defined(semiMajorAxis) || !defined(semiMinorAxis)) {
                 throw new DeveloperError('ellipsoid, center, semiMajorAxis, and semiMinorAxis are required.');
             }
-
             if (semiMajorAxis <= 0.0 || semiMinorAxis <= 0.0) {
                 throw new DeveloperError('Semi-major and semi-minor axes must be greater than zero.');
             }
-
-            bearing = bearing || 0.0;
-            granularity = defaultValue(granularity, CesiumMath.RADIANS_PER_DEGREE);
-
             if (granularity <= 0.0) {
                 throw new DeveloperError('granularity must be greater than zero.');
             }
+            //>>includeEnd('debug');
 
             if (semiMajorAxis < semiMinorAxis) {
                var t = semiMajorAxis;
@@ -214,16 +213,16 @@ define([
 
             var ellipsePts = [];
 
-            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, bearing,
+            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, rotation,
                                    thetaPts, 0.0, 0.0, 1, ellipsePts, 0, numQuadrantPts - 1);
 
-            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, bearing,
+            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, rotation,
                                    thetaPts, numQuadrantPts - 1, Math.PI, -1, ellipsePts, numQuadrantPts - 1, numQuadrantPts - 1);
 
-            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, bearing,
+            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, rotation,
                                    thetaPts, 0.0, Math.PI, 1, ellipsePts, (2 * numQuadrantPts) - 2, numQuadrantPts - 1);
 
-            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, bearing,
+            _computeEllipseQuadrant(ellipsoid, surfPosMag, aSqr, bSqr, ab, ecc, unitPos, eastVec, northVec, rotation,
                                    thetaPts, numQuadrantPts - 1, CesiumMath.TWO_PI, -1, ellipsePts, (3 * numQuadrantPts) - 3, numQuadrantPts);
 
             ellipsePts.push(Cartesian3.clone(ellipsePts[0])); // Duplicates first and last point for polyline
@@ -240,7 +239,7 @@ define([
          * @returns The set of points that form the ellipse's boundary.
          *
          * @example
-         * var circle = Shapes.compute2DCircle(100000.0);
+         * var circle = Cesium.Shapes.compute2DCircle(100000.0);
          */
         compute2DCircle : function(radius, granularity) {
             radius = defaultValue(radius, 1.0);

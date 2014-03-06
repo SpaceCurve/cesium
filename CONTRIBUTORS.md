@@ -28,6 +28,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to Cesiu
    * [David Hudlow](https://github.com/DavidHudlow)
 * [Evax Software](http://www.evax.fr)
    * [Evax Software](https://github.com/evax)
+* [Aviture](http://aviture.us.com)
+   * [Mike Macaulay](https://github.com/mmacaula)
 
 ## [Individual CLA](http://www.agi.com/licenses/individual-cla-agi-v1.0.txt)
 * [Victor Berchet](https://github.com/vicb)
@@ -38,5 +40,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to Cesiu
 * [Ognjen Bubalo](https://github.com/ognjenb)
 * [Ayudh Das](https://github.com/ayudhDas)
 * [You Lu](https://github.com/YouLu)
+* [David Hite](https://github.com/dav3hit3)
 
-Also see [our contributors page](http://cesium.agi.com/contributors.html) for more information.
+Also see [our contributors page](http://cesiumjs.org/contributors.html) for more information.

@@ -74,13 +74,14 @@ define([
     var timelineMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     function Timeline(container, clock) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(container)) {
             throw new DeveloperError('container is required.');
         }
-
         if (!defined(clock)) {
             throw new DeveloperError('clock is required.');
         }
+        //>>includeEnd('debug');
 
         container = getElement(container);
 
@@ -204,9 +205,13 @@ define([
 
     Timeline.prototype.zoomTo = function(startJulianDate, endJulianDate) {
         this._timeBarSecondsSpan = startJulianDate.getSecondsDifference(endJulianDate);
+
+        //>>includeStart('debug', pragmas.debug);
         if (this._timeBarSecondsSpan <= 0) {
             throw new DeveloperError('Start time must come before end time.');
         }
+        //>>includeEnd('debug');
+
         this._startJulian = startJulianDate;
         this._endJulian = endJulianDate;
 
@@ -290,7 +295,7 @@ define([
 
         this._needleEle.style.left = xPos.toString() + 'px';
 
-        var tics = '<span class="cesium-timeline-icon16" style="left:' + scrubX + 'px;bottom:0;background-position: 0px 0px;"></span>';
+        var tics = '';
 
         var minimumDuration = 0.01;
         var maximumDuration = 31536000000.0; // ~1000 years
@@ -473,8 +478,9 @@ define([
             this._mainTicSpan = -1;
         }
 
+        tics += '<span class="cesium-timeline-icon16" style="left:' + scrubX + 'px;bottom:0;background-position: 0px 0px;"></span>';
         timeBar.innerHTML = tics;
-        this._scrubElement = timeBar.childNodes[0];
+        this._scrubElement = timeBar.lastChild;
 
         // Clear track canvas.
         this._context.clearRect(0, 0, this._trackListEle.width, this._trackListEle.height);

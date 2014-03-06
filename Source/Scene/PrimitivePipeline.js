@@ -160,17 +160,21 @@ define([
         var projection = parameters.projection;
         var uintIndexSupport = parameters.elementIndexUintSupported;
         var allow3DOnly = parameters.allow3DOnly;
+        var allowPicking = parameters.allowPicking;
         var vertexCacheOptimize = parameters.vertexCacheOptimize;
         var modelMatrix = parameters.modelMatrix;
 
         var i;
         var length = instances.length;
         var primitiveType = instances[0].geometry.primitiveType;
+
+        //>>includeStart('debug', pragmas.debug);
         for (i = 1; i < length; ++i) {
-            if (instances[i].geometry.primitiveType.value !== primitiveType.value) {
+            if (instances[i].geometry.primitiveType !== primitiveType) {
                 throw new DeveloperError('All instance geometries must have the same primitiveType.');
             }
         }
+        //>>includeEnd('debug');
 
         // Unify to world coordinates before combining.
         transformToWorldCoordinates(instances, modelMatrix, allow3DOnly);
@@ -183,7 +187,9 @@ define([
         }
 
         // Add pickColor attribute for picking individual instances
-        addPickColorAttribute(instances, pickIds);
+        if (allowPicking) {
+            addPickColorAttribute(instances, pickIds);
+        }
 
         // add attributes to the geometry for each per-instance attribute
         var perInstanceAttributeNames = getCommonPerInstanceAttributeNames(instances);
@@ -233,7 +239,7 @@ define([
         return [geometry];
     }
 
-    function createPerInstanceVAAttributes(geometry, attributeIndices, names) {
+    function createPerInstanceVAAttributes(geometry, attributeLocations, names) {
         var vaAttributes = [];
         var attributes = geometry.attributes;
 
@@ -249,7 +255,7 @@ define([
 
             var typedArray = ComponentDatatype.createTypedArray(componentDatatype, attribute.values);
             vaAttributes.push({
-                index : attributeIndices[name],
+                index : attributeLocations[name],
                 componentDatatype : componentDatatype,
                 componentsPerAttribute : attribute.componentsPerAttribute,
                 normalize : attribute.normalize,
@@ -262,7 +268,7 @@ define([
         return vaAttributes;
     }
 
-    function computePerInstanceAttributeIndices(instances, vertexArrays, attributeIndices) {
+    function computePerInstanceAttributeLocations(instances, vertexArrays, attributeLocations) {
         var indices = [];
 
         var names = getCommonPerInstanceAttributeNames(instances);
@@ -277,7 +283,7 @@ define([
             var namesLength = names.length;
             for (var j = 0; j < namesLength; ++j) {
                 var name = names[j];
-                var index = attributeIndices[name];
+                var index = attributeLocations[name];
 
                 var tempVertexCount = numberOfVertices;
                 while (tempVertexCount > 0) {
@@ -352,11 +358,12 @@ define([
             projection : parameters.projection,
             elementIndexUintSupported : parameters.elementIndexUintSupported,
             allow3DOnly : parameters.allow3DOnly,
+            allowPicking : parameters.allowPicking,
             vertexCacheOptimize : parameters.vertexCacheOptimize,
             modelMatrix : Matrix4.clone(parameters.modelMatrix)
         };
         var geometries = geometryPipeline(clonedParameters);
-        var attributeIndices = GeometryPipeline.createAttributeIndices(geometries[0]);
+        var attributeLocations = GeometryPipeline.createAttributeLocations(geometries[0]);
 
         var instances = clonedParameters.instances;
         var perInstanceAttributeNames = getCommonPerInstanceAttributeNames(instances);
@@ -365,17 +372,17 @@ define([
         var length = geometries.length;
         for (var i = 0; i < length; ++i) {
             var geometry = geometries[i];
-            perInstanceAttributes.push(createPerInstanceVAAttributes(geometry, attributeIndices, perInstanceAttributeNames));
+            perInstanceAttributes.push(createPerInstanceVAAttributes(geometry, attributeLocations, perInstanceAttributeNames));
         }
 
-        var indices = computePerInstanceAttributeIndices(instances, perInstanceAttributes, attributeIndices);
+        var indices = computePerInstanceAttributeLocations(instances, perInstanceAttributes, attributeLocations);
 
         return {
             geometries : geometries,
             modelMatrix : clonedParameters.modelMatrix,
-            attributeIndices : attributeIndices,
+            attributeLocations : attributeLocations,
             vaAttributes : perInstanceAttributes,
-            vaAttributeIndices : indices
+            vaAttributeLocations : indices
         };
     };
 
@@ -387,10 +394,14 @@ define([
      */
 
     function stupefyTypedArray(typedArray) {
-        return {
-            type : typedArray.constructor.name,
-            buffer : typedArray.buffer
-        };
+        if (defined(typedArray.constructor.name)) {
+            return {
+                type : typedArray.constructor.name,
+                buffer : typedArray.buffer
+            };
+        } else {
+            return typedArray;
+        }
     }
 
     var typedArrayMap = {
@@ -405,7 +416,11 @@ define([
     };
 
     function unStupefyTypedArray(typedArray) {
-        return new typedArrayMap[typedArray.type](typedArray.buffer);
+        if (defined(typedArray.type)) {
+            return new typedArrayMap[typedArray.type](typedArray.buffer);
+        } else {
+            return typedArray;
+        }
     }
 
     /**
@@ -420,7 +435,7 @@ define([
                     defined(attributes[name].values)) {
                 typedArray = attributes[name].values;
 
-                if (transferableObjects.indexOf(attributes[name].values.buffer) < 0) {
+                if (FeatureDetection.supportsTransferringArrayBuffers() && transferableObjects.indexOf(attributes[name].values.buffer) < 0) {
                     transferableObjects.push(typedArray.buffer);
                 }
 
@@ -432,7 +447,10 @@ define([
 
         if (defined(geometry.indices)) {
             typedArray = geometry.indices;
-            transferableObjects.push(typedArray.buffer);
+
+            if (FeatureDetection.supportsTransferringArrayBuffers()) {
+                transferableObjects.push(typedArray.buffer);
+            }
 
             if (!defined(typedArray.type)) {
                 geometry.indices = stupefyTypedArray(geometry.indices);
@@ -460,7 +478,9 @@ define([
             var vaLength = vaAttributes.length;
             for (var j = 0; j < vaLength; ++j) {
                 var typedArray = vaAttributes[j].values;
-                transferableObjects.push(typedArray.buffer);
+                if (FeatureDetection.supportsTransferringArrayBuffers()) {
+                    transferableObjects.push(typedArray.buffer);
+                }
                 vaAttributes[j].values = stupefyTypedArray(typedArray);
             }
         }

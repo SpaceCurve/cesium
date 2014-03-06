@@ -49,37 +49,32 @@ define([
      * @param {Scene} scene The scene the primitives will be rendered in.
      * @param {DynamicObjectCollection} [dynamicObjectCollection] The dynamicObjectCollection to visualize.
      *
-     * @exception {DeveloperError} scene is required.
-     *
      * @see DynamicBillboard
-     * @see Scene
      * @see DynamicObject
      * @see DynamicObjectCollection
      * @see CompositeDynamicObjectCollection
-     * @see VisualizerCollection
      * @see DynamicConeVisualizer
      * @see DynamicConeVisualizerUsingCustomSensor
      * @see DynamicLabelVisualizer
      * @see DynamicPointVisualizer
-     * @see DynamicPolygonVisualizer
-     * @see DynamicPolylineVisualizer
      * @see DynamicPyramidVisualizer
-     *
      */
     var DynamicBillboardVisualizer = function(scene, dynamicObjectCollection) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(scene)) {
             throw new DeveloperError('scene is required.');
         }
+        //>>includeEnd('debug');
 
         this._scene = scene;
         this._unusedIndexes = [];
         this._dynamicObjectCollection = undefined;
 
         var billboardCollection = this._billboardCollection = new BillboardCollection();
-        var atlas = this._textureAtlas = scene.getContext().createTextureAtlas();
+        var atlas = this._textureAtlas = scene.context.createTextureAtlas();
         this._textureAtlasBuilder = new TextureAtlasBuilder(atlas);
-        billboardCollection.setTextureAtlas(atlas);
-        scene.getPrimitives().add(billboardCollection);
+        billboardCollection.textureAtlas = atlas;
+        scene.primitives.add(billboardCollection);
         this.setDynamicObjectCollection(dynamicObjectCollection);
     };
 
@@ -125,13 +120,14 @@ define([
      * DynamicObject counterpart at the given time.
      *
      * @param {JulianDate} time The time to update to.
-     *
-     * @exception {DeveloperError} time is required.
      */
     DynamicBillboardVisualizer.prototype.update = function(time) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(time)) {
-            throw new DeveloperError('time is requied.');
+            throw new DeveloperError('time is required.');
         }
+        //>>includeEnd('debug');
+
         if (defined(this._dynamicObjectCollection)) {
             var dynamicObjects = this._dynamicObjectCollection.getObjects();
             for ( var i = 0, len = dynamicObjects.length; i < len; i++) {
@@ -190,8 +186,8 @@ define([
      * visualizer = visualizer && visualizer.destroy();
      */
     DynamicBillboardVisualizer.prototype.destroy = function() {
-        this.removeAllPrimitives();
-        this._scene.getPrimitives().remove(this._billboardCollection);
+        this.setDynamicObjectCollection(undefined);
+        this._scene.primitives.remove(this._billboardCollection);
         return destroyObject(this);
     };
 
@@ -241,11 +237,11 @@ define([
                 billboardVisualizerIndex = unusedIndexes.pop();
                 billboard = dynamicBillboardVisualizer._billboardCollection.get(billboardVisualizerIndex);
             } else {
-                billboardVisualizerIndex = dynamicBillboardVisualizer._billboardCollection.getLength();
+                billboardVisualizerIndex = dynamicBillboardVisualizer._billboardCollection.length;
                 billboard = dynamicBillboardVisualizer._billboardCollection.add();
             }
             dynamicObject._billboardVisualizerIndex = billboardVisualizerIndex;
-            billboard.dynamicObject = dynamicObject;
+            billboard.id = dynamicObject;
             billboard._visualizerUrl = undefined;
             billboard._visualizerTextureAvailable = false;
 
@@ -360,6 +356,11 @@ define([
         property = dynamicBillboard._translucencyByDistance;
         if (defined(property)) {
             billboard.setTranslucencyByDistance(property.getValue(time));
+        }
+
+        property = dynamicBillboard._pixelOffsetScaleByDistance;
+        if (defined(property)) {
+            billboard.setPixelOffsetScaleByDistance(property.getValue(time));
         }
     }
 

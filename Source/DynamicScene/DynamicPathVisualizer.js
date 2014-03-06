@@ -142,7 +142,7 @@ define([
     function subSampleIntervalProperty(property, start, stop, updateTime, referenceFrame, maximumStep, startingIndex, result) {
         var index = startingIndex;
         var intervals = property.getIntervals();
-        for ( var i = 0; i < intervals.getLength(); i++) {
+        for ( var i = 0; i < intervals.length; i++) {
             var interval = intervals.get(0);
             if (interval.start.lessThanOrEquals(stop)) {
                 var tmp = property.getValueInReferenceFrame(stop, referenceFrame, result[index]);
@@ -158,7 +158,7 @@ define([
     function subSampleCompositeProperty(property, start, stop, updateTime, referenceFrame, maximumStep, startingIndex, result) {
         var index = startingIndex;
         var intervals = property.getIntervals();
-        for ( var i = 0; i < intervals.getLength(); i++) {
+        for ( var i = 0; i < intervals.length; i++) {
             var interval = intervals.get(0);
             if (interval.start.lessThanOrEquals(stop)) {
                 var intervalProperty = interval.data;
@@ -203,7 +203,7 @@ define([
         this._polylineCollection = new PolylineCollection();
         this._scene = scene;
         this._referenceFrame = referenceFrame;
-        scene.getPrimitives().add(this._polylineCollection);
+        scene.primitives.add(this._polylineCollection);
     };
 
     PolylineUpdater.prototype.update = function(time) {
@@ -267,15 +267,21 @@ define([
                 if (hasTrailTime) {
                     sampleStart = time.addSeconds(-trailTime);
                 }
-                if (hasAvailability && (!hasTrailTime || availability.start.greaterThan(sampleStart))) {
-                    sampleStart = availability.start;
-                }
-
                 if (hasLeadTime) {
                     sampleStop = time.addSeconds(leadTime);
                 }
-                if (hasAvailability && (!hasLeadTime || availability.stop.lessThan(sampleStop))) {
-                    sampleStop = availability.stop;
+
+                if (hasAvailability) {
+                    var start = availability.start;
+                    var stop = availability.stop;
+
+                    if (!hasTrailTime || start.greaterThan(sampleStart)) {
+                        sampleStart = start;
+                    }
+
+                    if (!hasLeadTime || stop.lessThan(sampleStop)) {
+                        sampleStop = stop;
+                    }
                 }
                 show = sampleStart.lessThan(sampleStop);
             }
@@ -300,11 +306,11 @@ define([
                 pathVisualizerIndex = unusedIndexes.pop();
                 polyline = this._polylineCollection.get(pathVisualizerIndex);
             } else {
-                pathVisualizerIndex = this._polylineCollection.getLength();
+                pathVisualizerIndex = this._polylineCollection.length;
                 polyline = this._polylineCollection.add();
             }
             dynamicObject._pathVisualizerIndex = pathVisualizerIndex;
-            polyline.dynamicObject = dynamicObject;
+            polyline.id = dynamicObject;
 
             // CZML_TODO Determine official defaults
             polyline.setWidth(1);
@@ -367,7 +373,7 @@ define([
     };
 
     PolylineUpdater.prototype.destroy = function() {
-        this._scene.getPrimitives().remove(this._polylineCollection);
+        this._scene.primitives.remove(this._polylineCollection);
         return destroyObject(this);
     };
 
@@ -380,28 +386,24 @@ define([
      * @param {Scene} scene The scene the primitives will be rendered in.
      * @param {DynamicObjectCollection} [dynamicObjectCollection] The dynamicObjectCollection to visualize.
      *
-     * @exception {DeveloperError} scene is required.
-     *
      * @see DynamicPath
      * @see Polyline
-     * @see Scene
      * @see DynamicObject
-     * @see DynamicObjectCollection
      * @see CompositeDynamicObjectCollection
-     * @see VisualizerCollection
      * @see DynamicBillboardVisualizer
      * @see DynamicConeVisualizer
-     * @see DynamicConeVisualizerUsingCustomSensorr
+     * @see DynamicConeVisualizerUsingCustomSensor
      * @see DynamicLabelVisualizer
      * @see DynamicPointVisualizer
-     * @see DynamicPolygonVisualizer
      * @see DynamicPyramidVisualizer
-     *
      */
     var DynamicPathVisualizer = function(scene, dynamicObjectCollection) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(scene)) {
             throw new DeveloperError('scene is required.');
         }
+        //>>includeEnd('debug');
+
         this._scene = scene;
         this._updaters = {};
         this._dynamicObjectCollection = undefined;
@@ -450,13 +452,13 @@ define([
      * DynamicObject counterpart at the given time.
      *
      * @param {JulianDate} time The time to update to.
-     *
-     * @exception {DeveloperError} time is required.
      */
     DynamicPathVisualizer.prototype.update = function(time) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(time)) {
-            throw new DeveloperError('time is requied.');
+            throw new DeveloperError('time is required.');
         }
+        //>>includeEnd('debug');
 
         if (defined(this._dynamicObjectCollection)) {
             var updaters = this._updaters;
@@ -568,7 +570,7 @@ define([
      * visualizer = visualizer && visualizer.destroy();
      */
     DynamicPathVisualizer.prototype.destroy = function() {
-        this.removeAllPrimitives();
+        this.setDynamicObjectCollection(undefined);
         return destroyObject(this);
     };
 

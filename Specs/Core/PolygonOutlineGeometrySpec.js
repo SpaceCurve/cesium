@@ -21,19 +21,19 @@ defineSuite([
     it('throws without hierarchy', function() {
         expect(function() {
             return new PolygonOutlineGeometry();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws without positions', function() {
         expect(function() {
             return PolygonOutlineGeometry.fromPositions();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws with less than three positions', function() {
         expect(function() {
             return PolygonOutlineGeometry.createGeometry(PolygonOutlineGeometry.fromPositions({ positions : [new Cartesian3()] }));
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws with polygon hierarchy with less than three positions', function() {
@@ -45,7 +45,7 @@ defineSuite([
 
         expect(function() {
             return PolygonOutlineGeometry.createGeometry(new PolygonOutlineGeometry({ polygonHierarchy : hierarchy }));
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws due to duplicate positions', function() {
@@ -60,7 +60,7 @@ defineSuite([
                 ],
                 ellipsoid : ellipsoid
             }));
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
 
@@ -77,7 +77,7 @@ defineSuite([
                 ellipsoid : ellipsoid,
                 extrudedeHeight: 2
             }));
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws due to duplicate hierarchy positions', function() {
@@ -102,7 +102,7 @@ defineSuite([
                 polygonHierarchy : hierarchy,
                 ellipsoid : ellipsoid
             }));
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('computes positions', function() {
@@ -118,6 +118,24 @@ defineSuite([
 
         expect(p.attributes.position.values.length).toEqual(3 * 6);
         expect(p.indices.length).toEqual(2 * 6);
+    });
+
+    it('computes positions with per position heights', function() {
+        var ellipsoid = Ellipsoid.WGS84;
+        var positions = ellipsoid.cartographicArrayToCartesianArray([
+           Cartographic.fromDegrees(-50.0, -50.0, 100000.0),
+           Cartographic.fromDegrees(50.0, -50.0, 0.0),
+           Cartographic.fromDegrees(50.0, 50.0, 0.0),
+           Cartographic.fromDegrees(-50.0, 50.0, 0.0)
+       ]);
+        var p = PolygonOutlineGeometry.createGeometry(PolygonOutlineGeometry.fromPositions({
+            positions : positions,
+            granularity : CesiumMath.PI_OVER_THREE,
+            perPositionHeight : true
+        }));
+
+        expect(ellipsoid.cartesianToCartographic(Cartesian3.fromArray(p.attributes.position.values, 0)).height).toEqualEpsilon(100000, CesiumMath.EPSILON6);
+        expect(ellipsoid.cartesianToCartographic(Cartesian3.fromArray(p.attributes.position.values, 3)).height).toEqualEpsilon(0, CesiumMath.EPSILON6);
     });
 
     it('creates a polygon from hierarchy', function() {
@@ -255,4 +273,4 @@ defineSuite([
         expect(p.indices.length).toEqual(2 * 12 * 2 + 12*2);
     });
 
-}, 'WebGL');
+});

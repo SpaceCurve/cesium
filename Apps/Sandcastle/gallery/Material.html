@@ -8,7 +8,7 @@
     <meta name="cesium-sandcastle-labels" content="Appearances">
     <title>Cesium Demo</title>
     <script type="text/javascript" src="../Sandcastle-header.js"></script>
-    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.8/require.js"></script>
+    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.9/require.js"></script>
     <script type="text/javascript">
     require.config({
         baseUrl : '../../../Source',
@@ -29,11 +29,11 @@ require(['Cesium'], function(Cesium) {
 
     var viewer = new Cesium.Viewer('cesiumContainer');
     var scene = viewer.scene;
-    var primitives = scene.getPrimitives();
-    var ellipsoid = viewer.centralBody.getEllipsoid();
+    var primitives = scene.primitives;
+    var ellipsoid = viewer.centralBody.ellipsoid;
 
     // Checkerboard Wall
-    scene.getPrimitives().add(new Cesium.Primitive({
+    primitives.add(new Cesium.Primitive({
         geometryInstances : new Cesium.GeometryInstance({
             geometry : new Cesium.WallGeometry({
                 positions : ellipsoid.cartographicArrayToCartesianArray([
@@ -43,13 +43,12 @@ require(['Cesium'], function(Cesium) {
             })
         }),
         appearance : new Cesium.MaterialAppearance({
-            material : Cesium.Material.fromType('Checkerboard'),
-            faceForward : true
+            material : Cesium.Material.fromType('Checkerboard')
         })
     }));
     
-    // Brick Wall
-    scene.getPrimitives().add(new Cesium.Primitive({
+    // Striped Wall
+    primitives.add(new Cesium.Primitive({
         geometryInstances : new Cesium.GeometryInstance({
             geometry : new Cesium.WallGeometry({
                 positions : ellipsoid.cartographicArrayToCartesianArray([
@@ -59,8 +58,7 @@ require(['Cesium'], function(Cesium) {
             })
         }),
         appearance : new Cesium.MaterialAppearance({
-            material : Cesium.Material.fromType('Brick'),
-            faceForward : true
+            material : Cesium.Material.fromType('Stripe')
         })
     }));
     

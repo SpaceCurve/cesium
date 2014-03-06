@@ -1,23 +1,21 @@
 /*global define*/
 define([
+        './Cartesian3',
+        './Cartographic',
         './defaultValue',
         './defined',
         './DeveloperError',
-        './Cartesian3',
-        './Cartesian4',
-        './Cartographic',
         './Ellipsoid',
         './GeographicProjection',
         './Intersect',
         './Interval',
         './Matrix4'
     ], function(
+        Cartesian3,
+        Cartographic,
         defaultValue,
         defined,
         DeveloperError,
-        Cartesian3,
-        Cartesian4,
-        Cartographic,
         Ellipsoid,
         GeographicProjection,
         Intersect,
@@ -99,7 +97,7 @@ define([
         var zMax = Cartesian3.clone(currentPos, fromPointsZMax);
 
         var numPositions = positions.length;
-        for ( var i = 1; i < numPositions; i++) {
+        for (var i = 1; i < numPositions; i++) {
             Cartesian3.clone(positions[i], currentPos);
 
             var x = currentPos.x;
@@ -331,11 +329,11 @@ define([
      * // Compute the bounding sphere from 3 positions, each specified relative to a center.
      * // In addition to the X, Y, and Z coordinates, the points array contains two additional
      * // elements per point which are ignored for the purpose of computing the bounding sphere.
-     * var center = new Cartesian3(1.0, 2.0, 3.0);
+     * var center = new Cesium.Cartesian3(1.0, 2.0, 3.0);
      * var points = [1.0, 2.0, 3.0, 0.1, 0.2,
      *               4.0, 5.0, 6.0, 0.1, 0.2,
      *               7.0, 8.0, 9.0, 0.1, 0.2];
-     * var sphere = BoundingSphere.fromVertices(points, center, 5);
+     * var sphere = Cesium.BoundingSphere.fromVertices(points, center, 5);
      */
     BoundingSphere.fromVertices = function(positions, center, stride, result) {
         if (!defined(result)) {
@@ -352,9 +350,11 @@ define([
 
         stride = defaultValue(stride, 3);
 
+        //>>includeStart('debug', pragmas.debug);
         if (stride < 3) {
             throw new DeveloperError('stride must be 3 or greater.');
         }
+        //>>includeEnd('debug');
 
         var currentPos = fromPointsCurrentPos;
         currentPos.x = positions[0] + center.x;
@@ -499,16 +499,16 @@ define([
      *
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
      *
-     * @exception {DeveloperError} corner and oppositeCorner are required.
-     *
      * @example
      * // Create a bounding sphere around the unit cube
-     * var sphere = BoundingSphere.fromCornerPoints(new Cartesian3(-0.5, -0.5, -0.5), new Cartesian3(0.5, 0.5, 0.5));
+     * var sphere = Cesium.BoundingSphere.fromCornerPoints(new Cesium.Cartesian3(-0.5, -0.5, -0.5), new Cesium.Cartesian3(0.5, 0.5, 0.5));
      */
     BoundingSphere.fromCornerPoints = function(corner, oppositeCorner, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(corner) || !defined(oppositeCorner)) {
             throw new DeveloperError('corner and oppositeCorner are required.');
         }
+        //>>includeEnd('debug');
 
         if (!defined(result)) {
             result = new BoundingSphere();
@@ -531,22 +531,22 @@ define([
      *
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
      *
-     * @exception {DeveloperError} ellipsoid is required.
-     *
      * @example
-     * var boundingSphere = BoundingSphere.fromEllipsoid(ellipsoid);
+     * var boundingSphere = Cesium.BoundingSphere.fromEllipsoid(ellipsoid);
      */
     BoundingSphere.fromEllipsoid = function(ellipsoid, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(ellipsoid)) {
             throw new DeveloperError('ellipsoid is required.');
         }
+        //>>includeEnd('debug');
 
         if (!defined(result)) {
             result = new BoundingSphere();
         }
 
         Cartesian3.clone(Cartesian3.ZERO, result.center);
-        result.radius = ellipsoid.getMaximumRadius();
+        result.radius = ellipsoid.maximumRadius;
         return result;
     };
 
@@ -582,11 +582,9 @@ define([
      * @param {BoundingSphere} right A sphere to enclose in a bounding sphere.
      * @param {BoundingSphere} [result] The object onto which to store the result.
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
-     *
-     * @exception {DeveloperError} left is required.
-     * @exception {DeveloperError} right is required.
      */
     BoundingSphere.union = function(left, right, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(left)) {
             throw new DeveloperError('left is required.');
         }
@@ -594,6 +592,7 @@ define([
         if (!defined(right)) {
             throw new DeveloperError('right is required.');
         }
+        //>>includeEnd('debug');
 
         if (!defined(result)) {
             result = new BoundingSphere();
@@ -623,11 +622,9 @@ define([
      * @param {Cartesian3} point A point to enclose in a bounding sphere.
      * @param {BoundingSphere} [result] The object onto which to store the result.
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
-     *
-     * @exception {DeveloperError} sphere is required.
-     * @exception {DeveloperError} point is required.
      */
     BoundingSphere.expand = function(sphere, point, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(sphere)) {
             throw new DeveloperError('sphere is required.');
         }
@@ -635,6 +632,7 @@ define([
         if (!defined(point)) {
             throw new DeveloperError('point is required.');
         }
+        //>>includeEnd('debug');
 
         result = BoundingSphere.clone(sphere, result);
 
@@ -657,11 +655,9 @@ define([
      * @returns {Intersect} {Intersect.INSIDE} if the entire sphere is on the side of the plane the normal
      *                     is pointing, {Intersect.OUTSIDE} if the entire sphere is on the opposite side,
      *                     and {Intersect.INTERSETING} if the sphere intersects the plane.
-     *
-     * @exception {DeveloperError} sphere is required.
-     * @exception {DeveloperError} plane is required.
      */
     BoundingSphere.intersect = function(sphere, plane) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(sphere)) {
             throw new DeveloperError('sphere is required.');
         }
@@ -669,6 +665,7 @@ define([
         if (!defined(plane)) {
             throw new DeveloperError('plane is required.');
         }
+        //>>includeEnd('debug');
 
         var center = sphere.center;
         var radius = sphere.radius;
@@ -684,8 +681,8 @@ define([
         return Intersect.INSIDE;
     };
 
-    var transformCart4 = Cartesian4.clone(Cartesian4.UNIT_W);
     var columnScratch = new Cartesian3();
+
     /**
      * Applies a 4x4 affine transformation matrix to a bounding sphere.
      * @memberof BoundingSphere
@@ -694,11 +691,9 @@ define([
      * @param {Matrix4} transform The transformation matrix to apply to the bounding sphere.
      * @param {BoundingSphere} [result] The object onto which to store the result.
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
-     *
-     * @exception {DeveloperError} sphere is required.
-     * @exception {DeveloperError} transform is required.
      */
     BoundingSphere.transform = function(sphere, transform, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(sphere)) {
             throw new DeveloperError('sphere is required.');
         }
@@ -706,17 +701,53 @@ define([
         if (!defined(transform)) {
             throw new DeveloperError('transform is required.');
         }
+        //>>includeEnd('debug');
 
         if (!defined(result)) {
             result = new BoundingSphere();
         }
 
-        Matrix4.multiplyByPoint(transform, sphere.center, transformCart4);
-
-        result.center = Cartesian3.clone(transformCart4, result.center);
+        result.center = Matrix4.multiplyByPoint(transform, sphere.center, result.center);
         result.radius = Math.max(Cartesian3.magnitude(Matrix4.getColumn(transform, 0, columnScratch)),
                 Cartesian3.magnitude(Matrix4.getColumn(transform, 1, columnScratch)),
                 Cartesian3.magnitude(Matrix4.getColumn(transform, 2, columnScratch))) * sphere.radius;
+
+        return result;
+    };
+
+    /**
+     * Applies a 4x4 affine transformation matrix to a bounding sphere where there is no scale
+     * The transformation matrix is not verified to have a uniform scale of 1.
+     * This method is faster than computing the general bounding sphere transform using {@link #transform}.
+     * @memberof BoundingSphere
+     *
+     * @param {BoundingSphere} sphere The bounding sphere to apply the transformation to.
+     * @param {Matrix4} transform The transformation matrix to apply to the bounding sphere.
+     * @param {BoundingSphere} [result] The object onto which to store the result.
+     * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
+     *
+     * @example
+     * var modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(positionOnEllipsoid);
+     * var boundingSphere = new Cesium.BoundingSphere();
+     * var newBoundingSphere = Cesium.BoundingSphere.transformWithoutScale(boundingSphere, modelMatrix);
+     */
+    BoundingSphere.transformWithoutScale = function(sphere, transform, result) {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(sphere)) {
+            throw new DeveloperError('sphere is required.');
+        }
+
+        if (!defined(transform)) {
+            throw new DeveloperError('transform is required.');
+        }
+        //>>includeEnd('debug');
+
+        if (!defined(result)) {
+            result = new BoundingSphere();
+        }
+
+        result.center = Matrix4.multiplyByPoint(transform, sphere.center, result.center);
+        result.radius = sphere.radius;
 
         return result;
     };
@@ -735,12 +766,9 @@ define([
      * @param {Cartesian3} direction The direction from position.
      * @param {Cartesian2} [result] A Cartesian2 to store the nearest and farthest distances.
      * @returns {Interval} The nearest and farthest distances on the bounding sphere from position in direction.
-     *
-     * @exception {DeveloperError} sphere is required.
-     * @exception {DeveloperError} position is required.
-     * @exception {DeveloperError} direction is required.
      */
     BoundingSphere.getPlaneDistances = function(sphere, position, direction, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(sphere)) {
             throw new DeveloperError('sphere is required.');
         }
@@ -752,6 +780,7 @@ define([
         if (!defined(direction)) {
             throw new DeveloperError('direction is required.');
         }
+        //>>includeEnd('debug');
 
         if (!defined(result)) {
             result = new Interval();
@@ -785,17 +814,17 @@ define([
      * @param {Object} [projection=GeographicProjection] The projection to 2D.
      * @param {BoundingSphere} [result] The object onto which to store the result.
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
-     *
-     * @exception {DeveloperError} sphere is required.
      */
     BoundingSphere.projectTo2D = function(sphere, projection, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(sphere)) {
             throw new DeveloperError('sphere is required.');
         }
+        //>>includeEnd('debug');
 
         projection = defaultValue(projection, projectTo2DProjection);
 
-        var ellipsoid = projection.getEllipsoid();
+        var ellipsoid = projection.ellipsoid;
         var center = sphere.center;
         var radius = sphere.radius;
 
@@ -913,8 +942,6 @@ define([
      * @param {BoundingSphere} right The sphere to enclose in this bounding sphere.
      * @param {BoundingSphere} [result] The object onto which to store the result.
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
-     *
-     * @exception {DeveloperError} sphere is required.
      */
     BoundingSphere.prototype.union = function(right, result) {
         return BoundingSphere.union(this, right, result);
@@ -927,8 +954,6 @@ define([
      * @param {Cartesian3} point A point to enclose in a bounding sphere.
      * @param {BoundingSphere} [result] The object onto which to store the result.
      * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if one was not provided.
-     *
-     * @exception {DeveloperError} point is required.
      */
     BoundingSphere.prototype.expand = function(point, result) {
         return BoundingSphere.expand(this, point, result);
@@ -944,25 +969,9 @@ define([
      * @returns {Intersect} {Intersect.INSIDE} if the entire sphere is on the side of the plane the normal
      *                     is pointing, {Intersect.OUTSIDE} if the entire sphere is on the opposite side,
      *                     and {Intersect.INTERSETING} if the sphere intersects the plane.
-     *
-     * @exception {DeveloperError} plane is required.
      */
     BoundingSphere.prototype.intersect = function(plane) {
         return BoundingSphere.intersect(this, plane);
-    };
-
-    /**
-     * Applies a 4x4 affine transformation matrix to this bounding sphere.
-     * @memberof BoundingSphere
-     *
-     * @param {Matrix4} transform The transformation matrix to apply to the bounding sphere.
-     * @param {BoundingSphere} [result] The object onto which to store the result.
-     * @returns {BoundingSphere} The modified result parameter or a new BoundingSphere instance if none was provided.
-     *
-     * @exception {DeveloperError} transform is required.
-     */
-    BoundingSphere.prototype.transform = function(transform, result) {
-        return BoundingSphere.transform(this, transform, result);
     };
 
     /**
@@ -977,9 +986,6 @@ define([
      * @param {Cartesian3} direction The direction from position.
      * @param {Cartesian2} [result] A Cartesian2 to store the nearest and farthest distances.
      * @returns {Interval} The nearest and farthest distances on the bounding sphere from position in direction.
-     *
-     * @exception {DeveloperError} position is required.
-     * @exception {DeveloperError} direction is required.
      */
     BoundingSphere.prototype.getPlaneDistances = function(position, direction, result) {
         return BoundingSphere.getPlaneDistances(this, position, direction, result);

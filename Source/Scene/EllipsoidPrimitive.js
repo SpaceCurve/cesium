@@ -3,7 +3,6 @@ define([
         '../Core/defaultValue',
         '../Core/BoxGeometry',
         '../Core/Cartesian3',
-        '../Core/Cartesian4',
         '../Core/combine',
         '../Core/defined',
         '../Core/DeveloperError',
@@ -14,9 +13,9 @@ define([
         '../Renderer/CullFace',
         '../Renderer/BlendingState',
         '../Renderer/BufferUsage',
-        '../Renderer/CommandLists',
         '../Renderer/DrawCommand',
         '../Renderer/createShaderSource',
+        '../Renderer/Pass',
         './Material',
         './SceneMode',
         '../Shaders/EllipsoidVS',
@@ -25,7 +24,6 @@ define([
         defaultValue,
         BoxGeometry,
         Cartesian3,
-        Cartesian4,
         combine,
         defined,
         DeveloperError,
@@ -36,16 +34,16 @@ define([
         CullFace,
         BlendingState,
         BufferUsage,
-        CommandLists,
         DrawCommand,
         createShaderSource,
+        Pass,
         Material,
         SceneMode,
         EllipsoidVS,
         EllipsoidFS) {
     "use strict";
 
-    var attributeIndices = {
+    var attributeLocations = {
         position : 0
     };
 
@@ -64,25 +62,26 @@ define([
      * @param {Boolean} [options.show=true] Determines if this primitive will be shown.
      * @param {Material} [options.material=Material.ColorType] The surface appearance of the primitive.
      * @param {Object} [options.id=undefined] A user-defined object to return when the instance is picked with {@link Scene#pick}
+     * @param {Boolean} [options.debugShowBoundingVolume=false] For debugging only. Determines if this primitive's commands' bounding spheres are shown.
      *
      * @example
      * // 1. Create a sphere using the ellipsoid primitive
-     * primitives.add(new EllipsoidPrimitive({
+     * primitives.add(new Cesium.EllipsoidPrimitive({
      *   center : ellipsoid.cartographicToCartesian(
-     *     Cartographic.fromDegrees(-75.0, 40.0, 500000.0)),
-     *   radii : new Cartesian3(500000.0, 500000.0, 500000.0)
+     *     Cesium.Cartographic.fromDegrees(-75.0, 40.0, 500000.0)),
+     *   radii : new Cesium.Cartesian3(500000.0, 500000.0, 500000.0)
      * }));
      *
      * @example
      * // 2. Create a tall ellipsoid in an east-north-up reference frame
-     * var e = new EllipsoidPrimitive();
-     * e.modelMatrix = Transforms.eastNorthUpToFixedFrame(
+     * var e = new Cesium.EllipsoidPrimitive();
+     * e.modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(
      *   ellipsoid.cartographicToCartesian(
-     *     Cartographic.fromDegrees(-95.0, 40.0, 200000.0)));
-     * e.radii = new Cartesian3(100000.0, 100000.0, 200000.0);
+     *     Cesium.Cartographic.fromDegrees(-95.0, 40.0, 200000.0)));
+     * e.radii = new Cesium.Cartesian3(100000.0, 100000.0, 200000.0);
      * primitives.add(e);
      *
-     * @demo <a href="http://cesium.agi.com/Cesium/Apps/Sandcastle/index.html?src=Volumes.html">Cesium Sandcastle Volumes Demo</a>
+     * @demo <a href="http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Volumes.html">Cesium Sandcastle Volumes Demo</a>
      */
     var EllipsoidPrimitive = function(options) {
         options = defaultValue(options, defaultValue.EMPTY_OBJECT);
@@ -99,6 +98,7 @@ define([
          * @see EllipsoidPrimitive#modelMatrix
          */
         this.center = Cartesian3.clone(defaultValue(options.center, Cartesian3.ZERO));
+        this._center = new Cartesian3();
 
         /**
          * The radius of the ellipsoid along the <code>x</code>, <code>y</code>, and <code>z</code> axes in the ellipsoid's model coordinates.
@@ -112,7 +112,7 @@ define([
          *
          * @example
          * // A sphere with a radius of 2.0
-         * e.radii = new Cartesian3(2.0, 2.0, 2.0);
+         * e.radii = new Cesium.Cartesian3(2.0, 2.0, 2.0);
          *
          * @see EllipsoidPrimitive#modelMatrix
          */
@@ -132,17 +132,16 @@ define([
          * @type {Matrix4}
          * @default {@link Matrix4.IDENTITY}
          *
-         * @default Matrix4.IDENTITY
-         *
          * @example
          * var origin = ellipsoid.cartographicToCartesian(
-         *   Cartographic.fromDegrees(-95.0, 40.0, 200000.0));
-         * e.modelMatrix = Transforms.eastNorthUpToFixedFrame(origin);
+         *   Cesium.Cartographic.fromDegrees(-95.0, 40.0, 200000.0));
+         * e.modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(origin);
          *
          * @see Transforms.eastNorthUpToFixedFrame
          * @see czm_model
          */
         this.modelMatrix = Matrix4.clone(defaultValue(options.modelMatrix, Matrix4.IDENTITY));
+        this._modelMatrix = new Matrix4();
         this._computedModelMatrix = new Matrix4();
 
         /**
@@ -165,15 +164,16 @@ define([
          *
          * @example
          * // 1. Change the color of the default material to yellow
-         * e.material.uniforms.color = new Color(1.0, 1.0, 0.0, 1.0);
+         * e.material.uniforms.color = new Cesium.Color(1.0, 1.0, 0.0, 1.0);
          *
          * // 2. Change material to horizontal stripes
-         * e.material = Material.fromType(Material.StripeType);
+         * e.material = Cesium.Material.fromType(Material.StripeType);
          *
          * @see <a href='https://github.com/AnalyticalGraphicsInc/cesium/wiki/Fabric'>Fabric</a>
          */
         this.material = defaultValue(options.material, Material.fromType(Material.ColorType));
         this._material = undefined;
+        this._translucent = undefined;
 
         /**
          * User-defined object returned when the ellipsoid is picked.
@@ -188,14 +188,24 @@ define([
         this._id = undefined;
 
         /**
+         * This property is for debugging only; it is not for production use nor is it optimized.
+         * <p>
+         * Draws the bounding sphere for each {@link DrawCommand} in the primitive.
+         * </p>
+         *
+         * @type {Boolean}
+         *
+         * @default false
+         */
+        this.debugShowBoundingVolume = defaultValue(options.debugShowBoundingVolume, false);
+
+        /**
          * @private
          */
         this.onlySunLighting = defaultValue(options.onlySunLighting, false);
         this._onlySunLighting = false;
 
         this._owner = options._owner;
-        this._executeInClosestFrustum = defaultValue(options._executeInClosestFrustum, true);
-        this._writeDepth = defaultValue(options._writeDepth, false);
 
         this._sp = undefined;
         this._rs = undefined;
@@ -208,7 +218,6 @@ define([
         this._colorCommand.owner = this;
         this._pickCommand = new DrawCommand();
         this._pickCommand.owner = this;
-        this._commandLists = new CommandLists();
 
         var that = this;
         this._uniforms = {
@@ -240,7 +249,7 @@ define([
 
         vertexArray = context.createVertexArrayFromGeometry({
             geometry: geometry,
-            attributeIndices: attributeIndices,
+            attributeLocations: attributeLocations,
             bufferUsage: BufferUsage.STATIC_DRAW
         });
 
@@ -261,11 +270,22 @@ define([
             return;
         }
 
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(this.material)) {
             throw new DeveloperError('this.material must be defined.');
         }
+        //>>includeEnd('debug');
 
-        if (!defined(this._rs)) {
+        var translucent = this.material.isTranslucent();
+        var translucencyChanged = this._translucent !== translucent;
+
+        if (!defined(this._rs) || translucencyChanged) {
+            this._translucent = translucent;
+
+            // If this render state is ever updated to use a non-default
+            // depth range, the hard-coded values in EllipsoidVS.glsl need
+            // to be updated as well.
+
             this._rs = context.createRenderState({
                 // Cull front faces - not back faces - so the ellipsoid doesn't
                 // disappear if the viewer enters the bounding box.
@@ -277,23 +297,18 @@ define([
                     enabled : true
                 },
                 // Do not write depth since the depth for the bounding box is
-                // wrong; it is not the true of the ray casted ellipsoid.
-                // For now, most ellipsoids will be translucent so we don't want
-                // to write depth anyway.
-                //
-                // For ellipsoids that we know are opaque and the EXT_frag_depth
-                // extension is available, we can set _writeDepth to true. This is
-                // a workaround and should be updated when we know which primitives
-                // are translucent.
-                // See the road map: https://github.com/AnalyticalGraphicsInc/cesium/wiki/Data-Driven-Renderer-Details
-                depthMask : this._writeDepth && context.getFragmentDepth(),
-                blending : BlendingState.ALPHA_BLEND
+                // wrong; it is not the true depth of the ray casted ellipsoid.
+                // Only write depth when EXT_frag_depth is supported.
+                depthMask : !translucent && context.getFragmentDepth(),
+                blending : translucent ? BlendingState.ALPHA_BLEND : undefined
             });
         }
 
         if (!defined(this._va)) {
             this._va = getVertexArray(context);
         }
+
+        var boundingSphereDirty = false;
 
         var radii = this.radii;
         if (!Cartesian3.equals(this._radii, radii)) {
@@ -304,14 +319,23 @@ define([
             r.y = 1.0 / (radii.y * radii.y);
             r.z = 1.0 / (radii.z * radii.z);
 
-            this._boundingSphere.radius = Cartesian3.getMaximumComponent(radii);
+            boundingSphereDirty = true;
         }
 
-        // Translate model coordinates used for rendering such that the origin is the center of the ellipsoid.
-        Matrix4.multiplyByTranslation(this.modelMatrix, this.center, this._computedModelMatrix);
+        if (!Matrix4.equals(this.modelMatrix, this._modelMatrix) || !Cartesian3.equals(this.center, this._center)) {
+            Matrix4.clone(this.modelMatrix, this._modelMatrix);
+            Cartesian3.clone(this.center, this._center);
 
-        var ellipsoidCommandLists = this._commandLists;
-        ellipsoidCommandLists.removeAll();
+            // Translate model coordinates used for rendering such that the origin is the center of the ellipsoid.
+            Matrix4.multiplyByTranslation(this.modelMatrix, this.center, this._computedModelMatrix);
+            boundingSphereDirty = true;
+        }
+
+        if (boundingSphereDirty) {
+            Cartesian3.clone(Cartesian3.ZERO, this._boundingSphere.center);
+            this._boundingSphere.radius = Cartesian3.getMaximumComponent(radii);
+            BoundingSphere.transform(this._boundingSphere, this._computedModelMatrix, this._boundingSphere);
+        }
 
         var materialChanged = this._material !== this.material;
         this._material = this.material;
@@ -320,37 +344,41 @@ define([
         var lightingChanged = this.onlySunLighting !== this._onlySunLighting;
         this._onlySunLighting = this.onlySunLighting;
 
-        if (frameState.passes.color) {
-            var colorCommand = this._colorCommand;
+        var colorCommand = this._colorCommand;
 
-            // Recompile shader when material changes
-            if (materialChanged || lightingChanged) {
-                var colorFS = createShaderSource({
-                    defines : [
-                        this.onlySunLighting ? 'ONLY_SUN_LIGHTING' : '',
-                        (this._writeDepth && context.getFragmentDepth()) ? 'WRITE_DEPTH' : ''
-                    ],
-                    sources : [this.material.shaderSource, EllipsoidFS] }
-                );
+        // Recompile shader when material, lighting, or transluceny changes
+        if (materialChanged || lightingChanged || translucencyChanged) {
+            var colorFS = createShaderSource({
+                defines : [
+                    this.onlySunLighting ? 'ONLY_SUN_LIGHTING' : '',
+                    (!translucent && context.getFragmentDepth()) ? 'WRITE_DEPTH' : ''
+                ],
+                sources : [this.material.shaderSource, EllipsoidFS] }
+            );
 
-                this._sp = context.getShaderCache().replaceShaderProgram(this._sp, EllipsoidVS, colorFS, attributeIndices);
+            this._sp = context.getShaderCache().replaceShaderProgram(this._sp, EllipsoidVS, colorFS, attributeLocations);
 
-                colorCommand.primitiveType = PrimitiveType.TRIANGLES;
-                colorCommand.vertexArray = this._va;
-                colorCommand.renderState = this._rs;
-                colorCommand.shaderProgram = this._sp;
-                colorCommand.uniformMap = combine([this._uniforms, this.material._uniforms], false, false);
-                colorCommand.executeInClosestFrustum = this._executeInClosestFrustum;
-                colorCommand.owner = defaultValue(this._owner, this);
-            }
-
-            colorCommand.boundingVolume = this._boundingSphere;
-            colorCommand.modelMatrix = this._computedModelMatrix;
-
-            ellipsoidCommandLists.colorList.push(colorCommand);
+            colorCommand.primitiveType = PrimitiveType.TRIANGLES;
+            colorCommand.vertexArray = this._va;
+            colorCommand.renderState = this._rs;
+            colorCommand.shaderProgram = this._sp;
+            colorCommand.uniformMap = combine(this._uniforms, this.material._uniforms);
+            colorCommand.executeInClosestFrustum = translucent;
+            colorCommand.owner = defaultValue(this._owner, this);
         }
 
-        if (frameState.passes.pick) {
+        var passes = frameState.passes;
+
+        if (passes.render) {
+            colorCommand.boundingVolume = this._boundingSphere;
+            colorCommand.debugShowBoundingVolume = this.debugShowBoundingVolume;
+            colorCommand.modelMatrix = this._computedModelMatrix;
+            colorCommand.pass = translucent ? Pass.TRANSLUCENT : Pass.OPAQUE;
+
+            commandList.push(colorCommand);
+        }
+
+        if (passes.pick) {
             var pickCommand = this._pickCommand;
 
             if (!defined(this._pickId) || (this._id !== this.id)) {
@@ -367,30 +395,29 @@ define([
                 var pickFS = createShaderSource({
                     defines : [
                         this.onlySunLighting ? 'ONLY_SUN_LIGHTING' : '',
-                        (this._writeDepth && context.getFragmentDepth()) ? 'WRITE_DEPTH' : ''
+                        (!translucent && context.getFragmentDepth()) ? 'WRITE_DEPTH' : ''
                     ],
                     sources : [this.material.shaderSource, EllipsoidFS],
                     pickColorQualifier : 'uniform'
                 });
 
-                this._pickSP = context.getShaderCache().replaceShaderProgram(this._pickSP, EllipsoidVS, pickFS, attributeIndices);
+                this._pickSP = context.getShaderCache().replaceShaderProgram(this._pickSP, EllipsoidVS, pickFS, attributeLocations);
 
                 pickCommand.primitiveType = PrimitiveType.TRIANGLES;
                 pickCommand.vertexArray = this._va;
                 pickCommand.renderState = this._rs;
                 pickCommand.shaderProgram = this._pickSP;
-                pickCommand.uniformMap = combine([this._uniforms, this._pickUniforms, this.material._uniforms], false, false);
-                pickCommand.executeInClosestFrustum = this._executeInClosestFrustum;
+                pickCommand.uniformMap = combine(combine(this._uniforms, this._pickUniforms), this.material._uniforms);
+                pickCommand.executeInClosestFrustum = translucent;
                 pickCommand.owner = defaultValue(this._owner, this);
             }
 
             pickCommand.boundingVolume = this._boundingSphere;
             pickCommand.modelMatrix = this._computedModelMatrix;
+            pickCommand.pass = translucent ? Pass.TRANSLUCENT : Pass.OPAQUE;
 
-            ellipsoidCommandLists.pickList.push(pickCommand);
+            commandList.push(pickCommand);
         }
-
-        commandList.push(ellipsoidCommandLists);
     };
 
     /**

@@ -5,9 +5,12 @@ defineSuite([
          'Specs/destroyContext',
          'Specs/createCamera',
          'Specs/createFrameState',
+         'Specs/createScene',
+         'Specs/destroyScene',
          'Specs/frameState',
          'Specs/pick',
          'Specs/render',
+         'Core/defaultValue',
          'Core/BoundingSphere',
          'Core/Cartesian3',
          'Core/Cartographic',
@@ -22,9 +25,12 @@ defineSuite([
          destroyContext,
          createCamera,
          createFrameState,
+         createScene,
+         destroyScene,
          frameState,
          pick,
          render,
+         defaultValue,
          BoundingSphere,
          Cartesian3,
          Cartographic,
@@ -49,9 +55,6 @@ defineSuite([
     });
 
     beforeEach(function() {
-        polygon = new Polygon();
-        polygon.asynchronous = false;
-
         us = context.getUniformState();
         us.update(context, createFrameState(createCamera(context, new Cartesian3(1.02, 0.0, 0.0), Cartesian3.ZERO, Cartesian3.UNIT_Z)));
     });
@@ -61,8 +64,12 @@ defineSuite([
         us = undefined;
     });
 
-    function createPolygon(id) {
+    function createPolygon(options) {
+        options = defaultValue(options, defaultValue.EMPTY_OBJECT);
+
         var ellipsoid = Ellipsoid.UNIT_SPHERE;
+        var material = Material.fromType('Color');
+        material.translucent = false;
 
         return new Polygon({
             ellipsoid : ellipsoid,
@@ -73,8 +80,10 @@ defineSuite([
                 ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(50.0, 50.0, 0.0)),
                 ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-50.0, 50.0, 0.0))
             ],
-            id : id,
-            asynchronous : false
+            material : material,
+            id : options.id,
+            asynchronous : false,
+            debugShowBoundingVolume : options.debugShowBoundingVolume
         });
     }
 
@@ -94,7 +103,8 @@ defineSuite([
             textureRotationAngle : CesiumMath.toRadians(45.0),
             show : false,
             material : material,
-            asynchronous : false
+            asynchronous : false,
+            debugShowBoundingVolume : true
         });
 
         expect(polygon.ellipsoid).toEqual(Ellipsoid.UNIT_SPHERE);
@@ -105,6 +115,7 @@ defineSuite([
         expect(polygon.show).toEqual(false);
         expect(polygon.material).toBe(material);
         expect(polygon.asynchronous).toEqual(false);
+        expect(polygon.debugShowBoundingVolume).toEqual(true);
     });
 
     it('construction throws with both positions and polygonHierarchy', function() {
@@ -124,7 +135,7 @@ defineSuite([
                     ])
                 }
             });
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('construction throws with less than three positions', function() {
@@ -132,14 +143,16 @@ defineSuite([
             return new Polygon({
                 positions : []
             });
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('gets default show', function() {
+        polygon = createPolygon();
         expect(polygon.show).toEqual(true);
     });
 
     it('sets positions', function() {
+        polygon = new Polygon();
         var positions = [
             new Cartesian3(1.0, 2.0, 3.0),
             new Cartesian3(4.0, 5.0, 6.0),
@@ -153,9 +166,11 @@ defineSuite([
     });
 
     it('setPositions throws with less than three positions', function() {
+        polygon = new Polygon();
+
         expect(function() {
             polygon.setPositions([new Cartesian3()]);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('configure polygon from hierarchy', function() {
@@ -184,6 +199,7 @@ defineSuite([
                 }]
         };
 
+        polygon = createPolygon();
         polygon.configureFromPolygonHierarchy(hierarchy);
         expect(polygon.getPositions()).not.toBeDefined();
     });
@@ -214,6 +230,7 @@ defineSuite([
                 }]
         };
 
+        polygon = createPolygon();
         polygon.configureFromPolygonHierarchy(hierarchy);
         expect(polygon.getPositions()).not.toBeDefined();
     });
@@ -224,13 +241,15 @@ defineSuite([
                     new Cartographic()
                 ])
         };
+        polygon = createPolygon();
         polygon.configureFromPolygonHierarchy(hierarchy);
         expect(function() {
             render(context, frameState, polygon);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('gets the default color', function() {
+        polygon = new Polygon();
         expect(polygon.material.uniforms.color).toEqual({
             red : 1.0,
             green : 1.0,
@@ -240,10 +259,12 @@ defineSuite([
     });
 
     it('has a default ellipsoid', function() {
+        polygon = new Polygon();
         expect(polygon.ellipsoid).toEqual(Ellipsoid.WGS84);
     });
 
     it('gets the default granularity', function() {
+        polygon = new Polygon();
         expect(polygon.granularity).toEqual(CesiumMath.RADIANS_PER_DEGREE);
     });
 
@@ -285,6 +306,28 @@ defineSuite([
         expect(render(context, frameState, polygon)).toEqual(0);
     });
 
+    it('renders bounding volume with debugShowBoundingVolume', function() {
+        var scene = createScene();
+        scene.primitives.add(createPolygon({
+            debugShowBoundingVolume : true
+        }));
+
+        var camera = scene.camera;
+        camera.position = new Cartesian3(1.02, 0.0, 0.0);
+        camera.direction = Cartesian3.negate(Cartesian3.UNIT_X);
+        camera.up = Cartesian3.clone(Cartesian3.UNIT_Z);
+
+        scene.initializeFrame();
+        scene.render();
+        var pixels = scene.context.readPixels();
+        expect(pixels[0]).not.toEqual(0);
+        expect(pixels[1]).toEqual(0);
+        expect(pixels[2]).toEqual(0);
+        expect(pixels[3]).toEqual(255);
+
+        destroyScene(scene);
+    });
+
     it('throws without positions due to duplicates', function() {
         var ellipsoid = Ellipsoid.UNIT_SPHERE;
 
@@ -299,7 +342,7 @@ defineSuite([
 
         expect(function() {
             render(context, frameState, polygon);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws without hierarchy positions due to duplicates', function() {
@@ -326,11 +369,13 @@ defineSuite([
 
         expect(function () {
             render(context, frameState, polygon);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('is picked', function() {
-        polygon = createPolygon('id');
+        polygon = createPolygon({
+            id : 'id'
+        });
 
         var pickedObject = pick(context, frameState, polygon, 0, 0);
         expect(pickedObject.primitive).toEqual(polygon);
@@ -357,13 +402,13 @@ defineSuite([
         polygon = createPolygon();
         var commandList = [];
         polygon.update(context, frameState, commandList);
-        var boundingVolume = commandList[0].colorList[0].boundingVolume;
+        var boundingVolume = commandList[0].boundingVolume;
         expect(boundingVolume).toEqual(BoundingSphere.fromPoints(polygon.getPositions()));
     });
 
     function test2DBoundingSphereFromPositions(testMode) {
         var projection = frameState.scene2D.projection;
-        var ellipsoid = projection.getEllipsoid();
+        var ellipsoid = projection.ellipsoid;
         var positions = [
             Cartographic.fromDegrees(-1.0, -1.0, 0.0),
             Cartographic.fromDegrees(1.0, -1.0, 0.0),
@@ -376,12 +421,13 @@ defineSuite([
         polygon.granularity = CesiumMath.toRadians(20.0);
         polygon.setPositions(ellipsoid.cartographicArrayToCartesianArray(positions));
         polygon.asynchronous = false;
+        polygon.material.translucent = false;
 
         var mode = frameState.mode;
         frameState.mode = testMode;
         var commandList = [];
         polygon.update(context, frameState, commandList);
-        var boundingVolume = commandList[0].colorList[0].boundingVolume;
+        var boundingVolume = commandList[0].boundingVolume;
         frameState.mode = mode;
 
         var sphere = BoundingSphere.projectTo2D(BoundingSphere.fromPoints(polygon.getPositions()));
@@ -411,7 +457,7 @@ defineSuite([
 
         expect(function() {
             polygon.update(context, frameState);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws when updated/rendered without an invalid granularity', function() {
@@ -420,7 +466,7 @@ defineSuite([
 
         expect(function() {
             polygon.update(context, frameState);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws when rendered without a material', function() {
@@ -429,6 +475,6 @@ defineSuite([
 
         expect(function() {
             render(context, frameState, polygon);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 }, 'WebGL');

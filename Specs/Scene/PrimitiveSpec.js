@@ -24,7 +24,9 @@ defineSuite([
          'Specs/pick',
          'Specs/createContext',
          'Specs/destroyContext',
-         'Specs/createFrameState'
+         'Specs/createFrameState',
+         'Specs/createScene',
+         'Specs/destroyScene'
      ], function(
          Primitive,
          ExtentGeometry,
@@ -50,7 +52,9 @@ defineSuite([
          pick,
          createContext,
          destroyContext,
-         createFrameState) {
+         createFrameState,
+         createScene,
+         destroyScene) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -121,7 +125,12 @@ defineSuite([
         expect(primitive.appearance).not.toBeDefined();
         expect(primitive.modelMatrix).toEqual(Matrix4.IDENTITY);
         expect(primitive.show).toEqual(true);
+        expect(primitive.vertexCacheOptimize).toEqual(false);
+        expect(primitive.releaseGeometryInstances).toEqual(true);
+        expect(primitive.allow3DOnly).toEqual(false);
+        expect(primitive.allowPicking).toEqual(true);
         expect(primitive.asynchronous).toEqual(true);
+        expect(primitive.debugShowBoundingVolume).toEqual(false);
     });
 
     it('releases geometry instances when releaseGeometryInstances is true', function() {
@@ -197,15 +206,15 @@ defineSuite([
             asynchronous : false
         });
 
-        frameState.passes.color = false;
+        frameState.passes.render = false;
         frameState.passes.pick = false;
 
         var commands = [];
         primitive.update(context, frameState, commands);
         expect(commands.length).toEqual(0);
 
-        frameState.passes.color = true;
-        frameState.passes.pick = true;
+        frameState.passes.render = true;
+        frameState.passes.pick = false;
 
         primitive = primitive && primitive.destroy();
     });
@@ -268,8 +277,7 @@ defineSuite([
 
         var commands = [];
         primitive.update(context, frameState, commands);
-        expect(commands.length).toEqual(1);
-        expect(commands[0].colorList.length).toEqual(2);
+        expect(commands.length).toEqual(2);
 
         primitive = primitive && primitive.destroy();
     });
@@ -327,7 +335,7 @@ defineSuite([
                                                   0.0, 1.0, 0.0, 0.0,
                                                   0.0, 0.0, 0.0, 1.0);
         var frustum = new OrthographicFrustum();
-        frustum.right = Ellipsoid.WGS84.getMaximumRadius() * Math.PI;
+        frustum.right = Ellipsoid.WGS84.maximumRadius * Math.PI;
         frustum.left = -frustum.right;
         frustum.top = frustum.right;
         frustum.bottom = -frustum.top;
@@ -354,6 +362,26 @@ defineSuite([
 
         frameState = createFrameState(); // reset frame state
         primitive = primitive && primitive.destroy();
+    });
+
+    it('renders bounding volume with debugShowBoundingVolume', function() {
+        var scene = createScene();
+        scene.primitives.add(new Primitive({
+            geometryInstances : extentInstance1,
+            appearance : new PerInstanceColorAppearance(),
+            asynchronous : false,
+            debugShowBoundingVolume : true
+        }));
+        scene.camera.controller.viewExtent(extent1);
+        scene.initializeFrame();
+        scene.render();
+        var pixels = scene.context.readPixels();
+        expect(pixels[0]).not.toEqual(0);
+        expect(pixels[1]).toEqual(0);
+        expect(pixels[2]).toEqual(0);
+        expect(pixels[3]).toEqual(255);
+
+        destroyScene(scene);
     });
 
     it('transforms to world coordinates', function() {
@@ -534,6 +562,24 @@ defineSuite([
         primitive = primitive && primitive.destroy();
     });
 
+    it('does not pick when allowPicking is false', function() {
+        var primitive = new Primitive({
+            geometryInstances : [extentInstance1],
+            appearance : new PerInstanceColorAppearance(),
+            allow3DOnly : true,
+            allowPicking : false,
+            asynchronous : false
+        });
+
+        frameState.camera.controller.viewExtent(extent1);
+        us.update(context, frameState);
+
+        var pickObject = pick(context, frameState, primitive);
+        expect(pickObject).not.toBeDefined();
+
+        primitive = primitive && primitive.destroy();
+    });
+
     it('update throws when geometry primitive types are different', function() {
         var primitive = new Primitive({
             geometryInstances : [
@@ -568,7 +614,7 @@ defineSuite([
 
         expect(function() {
             primitive.update(context, frameState, []);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('shader validation', function() {
@@ -583,7 +629,7 @@ defineSuite([
 
         expect(function() {
             primitive.update(context, frameState, []);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('setting per instance attribute throws when value is undefined', function() {
@@ -599,7 +645,7 @@ defineSuite([
 
         expect(function() {
             attributes.color = undefined;
-        }).toThrow();
+        }).toThrowDeveloperError();
 
         primitive = primitive && primitive.destroy();
     });
@@ -616,7 +662,7 @@ defineSuite([
 
         expect(function() {
             primitive.getGeometryInstanceAttributes();
-        }).toThrow();
+        }).toThrowDeveloperError();
 
         primitive = primitive && primitive.destroy();
     });
@@ -631,7 +677,7 @@ defineSuite([
 
         expect(function() {
             primitive.getGeometryInstanceAttributes('extent1');
-        }).toThrow();
+        }).toThrowDeveloperError();
 
         primitive = primitive && primitive.destroy();
     });
@@ -695,5 +741,4 @@ defineSuite([
         primitive.destroy();
         expect(primitive.isDestroyed()).toEqual(true);
     });
-
-});
+}, 'WebGL');

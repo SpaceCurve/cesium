@@ -65,7 +65,6 @@ define([
      * @param {Number} [yOffset=0] The offset in the y direction within the texture to copy into.
      *
      * @exception {DeveloperError} Cannot call copyFrom when the texture pixel format is DEPTH_COMPONENT or DEPTH_STENCIL.
-     * @exception {DeveloperError} source is required.
      * @exception {DeveloperError} xOffset must be greater than or equal to zero.
      * @exception {DeveloperError} yOffset must be greater than or equal to zero.
      * @exception {DeveloperError} xOffset + source.width must be less than or equal to getWidth().
@@ -80,35 +79,29 @@ define([
      * });
      */
     Texture.prototype.copyFrom = function(source, xOffset, yOffset) {
-        if (!defined(source)) {
-            throw new DeveloperError('source is required.');
-        }
-
-        if (PixelFormat.isDepthFormat(this._pixelFormat)) {
-            throw new DeveloperError('Cannot call copyFrom when the texture pixel format is DEPTH_COMPONENT or DEPTH_STENCIL.');
-        }
-
         xOffset = defaultValue(xOffset, 0);
         yOffset = defaultValue(yOffset, 0);
 
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(source)) {
+            throw new DeveloperError('source is required.');
+        }
+        if (PixelFormat.isDepthFormat(this._pixelFormat)) {
+            throw new DeveloperError('Cannot call copyFrom when the texture pixel format is DEPTH_COMPONENT or DEPTH_STENCIL.');
+        }
         if (xOffset < 0) {
             throw new DeveloperError('xOffset must be greater than or equal to zero.');
         }
-
         if (yOffset < 0) {
             throw new DeveloperError('yOffset must be greater than or equal to zero.');
         }
-
-        var width = source.width;
-        var height = source.height;
-
-        if (xOffset + width > this._width) {
+        if (xOffset +  source.width > this._width) {
             throw new DeveloperError('xOffset + source.width must be less than or equal to getWidth().');
         }
-
-        if (yOffset + height > this._height) {
+        if (yOffset + source.height > this._height) {
             throw new DeveloperError('yOffset + source.height must be less than or equal to getHeight().');
         }
+        //>>includeEnd('debug');
 
         var gl = this._gl;
         var target = this._textureTarget;
@@ -119,9 +112,8 @@ define([
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(target, this._texture);
 
-        //Firefox bug: texSubImage2D has overloads and can't resolve our enums, so we use + to explicitly convert to a number.
         if (source.arrayBufferView) {
-            gl.texSubImage2D(target, 0, xOffset, yOffset, width, height, +this._pixelFormat, +this._pixelDatatype, source.arrayBufferView);
+            gl.texSubImage2D(target, 0, xOffset, yOffset,  source.width, source.height, this._pixelFormat, this._pixelDatatype, source.arrayBufferView);
         } else {
             gl.texSubImage2D(target, 0, xOffset, yOffset, this._pixelFormat, this._pixelDatatype, source);
         }
@@ -152,14 +144,6 @@ define([
      * @exception {DeveloperError} yOffset + height must be less than or equal to getHeight().
      */
     Texture.prototype.copyFromFramebuffer = function(xOffset, yOffset, framebufferXOffset, framebufferYOffset, width, height) {
-        if (PixelFormat.isDepthFormat(this._pixelFormat)) {
-            throw new DeveloperError('Cannot call copyFromFramebuffer when the texture pixel format is DEPTH_COMPONENT or DEPTH_STENCIL.');
-        }
-
-        if (this._pixelDatatype === PixelDatatype.FLOAT) {
-            throw new DeveloperError('Cannot call copyFromFramebuffer when the texture pixel data type is FLOAT.');
-        }
-
         xOffset = defaultValue(xOffset, 0);
         yOffset = defaultValue(yOffset, 0);
         framebufferXOffset = defaultValue(framebufferXOffset, 0);
@@ -167,29 +151,32 @@ define([
         width = defaultValue(width, this._width);
         height = defaultValue(height, this._height);
 
+        //>>includeStart('debug', pragmas.debug);
+        if (PixelFormat.isDepthFormat(this._pixelFormat)) {
+            throw new DeveloperError('Cannot call copyFromFramebuffer when the texture pixel format is DEPTH_COMPONENT or DEPTH_STENCIL.');
+        }
+        if (this._pixelDatatype === PixelDatatype.FLOAT) {
+            throw new DeveloperError('Cannot call copyFromFramebuffer when the texture pixel data type is FLOAT.');
+        }
         if (xOffset < 0) {
             throw new DeveloperError('xOffset must be greater than or equal to zero.');
         }
-
         if (yOffset < 0) {
             throw new DeveloperError('yOffset must be greater than or equal to zero.');
         }
-
         if (framebufferXOffset < 0) {
             throw new DeveloperError('framebufferXOffset must be greater than or equal to zero.');
         }
-
         if (framebufferYOffset < 0) {
             throw new DeveloperError('framebufferYOffset must be greater than or equal to zero.');
         }
-
         if (xOffset + width > this._width) {
             throw new DeveloperError('xOffset + width must be less than or equal to getWidth().');
         }
-
         if (yOffset + height > this._height) {
             throw new DeveloperError('yOffset + height must be less than or equal to getHeight().');
         }
+        //>>includeEnd('debug');
 
         var gl = this._gl;
         var target = this._textureTarget;
@@ -214,22 +201,22 @@ define([
      * @exception {DeveloperError} This texture was destroyed, i.e., destroy() was called.
      */
     Texture.prototype.generateMipmap = function(hint) {
+        hint = defaultValue(hint, MipmapHint.DONT_CARE);
+
+        //>>includeStart('debug', pragmas.debug);
         if (PixelFormat.isDepthFormat(this._pixelFormat)) {
             throw new DeveloperError('Cannot call generateMipmap when the texture pixel format is DEPTH_COMPONENT or DEPTH_STENCIL.');
         }
-
         if (this._width > 1 && !CesiumMath.isPowerOfTwo(this._width)) {
             throw new DeveloperError('width must be a power of two to call generateMipmap().');
         }
-
         if (this._height > 1 && !CesiumMath.isPowerOfTwo(this._height)) {
             throw new DeveloperError('height must be a power of two to call generateMipmap().');
         }
-
-        hint = defaultValue(hint, MipmapHint.DONT_CARE);
         if (!MipmapHint.validate(hint)) {
             throw new DeveloperError('hint is invalid.');
         }
+        //>>includeEnd('debug');
 
         var gl = this._gl;
         var target = this._textureTarget;
@@ -303,7 +290,7 @@ define([
         gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, sampler.magnificationFilter);
         gl.texParameteri(target, gl.TEXTURE_WRAP_S, sampler.wrapS);
         gl.texParameteri(target, gl.TEXTURE_WRAP_T, sampler.wrapT);
-        if (this._textureFilterAnisotropic) {
+        if (defined(this._textureFilterAnisotropic)) {
             gl.texParameteri(target, this._textureFilterAnisotropic.TEXTURE_MAX_ANISOTROPY_EXT, sampler.maximumAnisotropy);
         }
         gl.bindTexture(target, null);

@@ -23,14 +23,18 @@ define([
      *
      * @example
      * // load a single URL asynchronously
-     * loadArrayBuffer('some/url').then(function(arrayBuffer) {
+     * Cesium.loadArrayBuffer('some/url').then(function(arrayBuffer) {
      *     // use the data
-     * }, function() {
+     * }, function(error) {
      *     // an error occurred
      * });
      */
     var loadArrayBuffer = function(url, headers) {
-        return loadWithXhr(url, 'arraybuffer', headers);
+        return loadWithXhr({
+            url : url,
+            responseType : 'arraybuffer',
+            headers : headers
+        });
     };
 
     return loadArrayBuffer;

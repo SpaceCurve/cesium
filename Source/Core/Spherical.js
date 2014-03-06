@@ -33,13 +33,13 @@ define([
      * @param {Spherical} [spherical] The object in which the result will be stored, if undefined a new instance will be created.
      *
      * @returns The modified result parameter, or a new instance if one was not provided.
-     *
-     * @exception {DeveloperError} cartesian3 is required.
      */
     Spherical.fromCartesian3 = function(cartesian3, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(cartesian3)) {
             throw new DeveloperError('cartesian3 is required');
         }
+        //>>includeEnd('debug');
 
         var x = cartesian3.x;
         var y = cartesian3.y;
@@ -88,13 +88,13 @@ define([
      * @param {Spherical} [result] The object to store the result into, if undefined a new instance will be created.
      *
      * @returns The modified result parameter or a new instance if result was undefined.
-     *
-     * @exception {DeveloperError} spherical is required.
      */
     Spherical.normalize = function(spherical, result) {
+      //>>includeStart('debug', pragmas.debug);
         if (!defined(spherical)) {
             throw new DeveloperError('spherical is required');
         }
+        //>>includeEnd('debug');
 
         if (!defined(result)) {
             return new Spherical(spherical.clock, spherical.cone, 1.0);

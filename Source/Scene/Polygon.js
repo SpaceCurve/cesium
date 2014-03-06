@@ -9,8 +9,6 @@ define([
         '../Core/Ellipsoid',
         '../Core/GeometryInstance',
         '../Core/PolygonGeometry',
-        '../Core/PolygonPipeline',
-        '../Core/Queue',
         './EllipsoidSurfaceAppearance',
         './Primitive',
         './Material'
@@ -24,8 +22,6 @@ define([
         Ellipsoid,
         GeometryInstance,
         PolygonGeometry,
-        PolygonPipeline,
-        Queue,
         EllipsoidSurfaceAppearance,
         Primitive,
         Material) {
@@ -46,23 +42,24 @@ define([
      * @param {Boolean} [options.show=true] Determines if this primitive will be shown.
      * @param {Material} [options.material=undefined] The surface appearance of the primitive.
      * @param {Object} [options.id=undefined] A user-defined object to return when the instance is picked with {@link Scene#pick}
-     * @param {Boolean} [options.asynchronous=true] Determines if the extent will be created asynchronously or block until ready.
+     * @param {Boolean} [options.asynchronous=true] Determines if the primitive will be created asynchronously or block until ready.
+     * @param {Boolean} [options.debugShowBoundingVolume=false] For debugging only. Determines if the primitive's commands' bounding spheres are shown.
      *
      * @exception {DeveloperError} Either options.positions or options.polygonHierarchy can be provided, but not both.
      * @exception {DeveloperError} When options.positions is provided, at least three positions are required.
      *
      * @example
      * // Example 1
-     * var polygon = new Polygon({
+     * var polygon = new Cesium.Polygon({
      *   positions : [
-     *     ellipsoid.cartographicToCartesian(new Cartographic(...)),
-     *     ellipsoid.cartographicToCartesian(new Cartographic(...)),
-     *     ellipsoid.cartographicToCartesian(new Cartographic(...))
+     *     ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+     *     ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+     *     ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...))
      *   ]
      * });
      *
      * // Example 2
-     * var polygon = new Polygon();
+     * var polygon = new Cesium.Polygon();
      * polygon.material.uniforms.color = {
      *   red   : 1.0,
      *   green : 0.0,
@@ -70,12 +67,12 @@ define([
      *   alpha : 1.0
      * };
      * polygon.setPositions([
-     *   ellipsoid.cartographicToCartesian(new Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cartographic(...))
+     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...))
      * ]);
      *
-     * @demo <a href="http://cesium.agi.com/Cesium/Apps/Sandcastle/index.html?src=Polygons.html">Cesium Sandcastle Polygons Demo</a>
+     * @demo <a href="http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Polygons.html">Cesium Sandcastle Polygons Demo</a>
      */
     var Polygon = function(options) {
         options = defaultValue(options, defaultValue.EMPTY_OBJECT);
@@ -131,8 +128,9 @@ define([
          */
         this.show = defaultValue(options.show, true);
 
-        var material = Material.fromType(Material.ColorType);
-        material.uniforms.color = new Color(1.0, 1.0, 0.0, 0.5);
+        var material = Material.fromType(Material.ColorType, {
+            color : new Color(1.0, 1.0, 0.0, 0.5)
+        });
 
         /**
          * The surface appearance of the primitive.  This can be one of several built-in {@link Material} objects or a custom material, scripted with
@@ -146,10 +144,10 @@ define([
          *
          * @example
          * // 1. Change the color of the default material to yellow
-         * polygon.material.uniforms.color = new Color(1.0, 1.0, 0.0, 1.0);
+         * polygon.material.uniforms.color = new Cesium.Color(1.0, 1.0, 0.0, 1.0);
          *
          * // 2. Change material to horizontal stripes
-         * polygon.material = Material.fromType( Material.StripeType);
+         * polygon.material = Cesium.Material.fromType( Material.StripeType);
          *
          * @see <a href='https://github.com/AnalyticalGraphicsInc/cesium/wiki/Fabric'>Fabric</a>
          */
@@ -177,14 +175,30 @@ define([
          */
         this.asynchronous = defaultValue(options.asynchronous, true);
 
+        /**
+         * This property is for debugging only; it is not for production use nor is it optimized.
+         * <p>
+         * Draws the bounding sphere for each {@link DrawCommand} in the primitive.
+         * </p>
+         *
+         * @type {Boolean}
+         *
+         * @default false
+         */
+        this.debugShowBoundingVolume = defaultValue(options.debugShowBoundingVolume, false);
+
         this._positions = undefined;
         this._polygonHierarchy = undefined;
         this._createPrimitive = false;
         this._primitive = undefined;
 
+        //>>includeStart('debug', pragmas.debug);
         if (defined(options.positions) && defined(options.polygonHierarchy)) {
             throw new DeveloperError('Either options.positions or options.polygonHierarchy can be provided, but not both.');
-        } else if (defined(options.positions)) {
+        }
+        //>>includeEnd('debug');
+
+        if (defined(options.positions)) {
             this.setPositions(options.positions);
         } else if (defined(options.polygonHierarchy)) {
             this.configureFromPolygonHierarchy(options.polygonHierarchy);
@@ -219,16 +233,20 @@ define([
      *
      * @example
      * polygon.setPositions([
-     *   ellipsoid.cartographicToCartesian(new Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cartographic(...))
+     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...))
      * ]);
      */
     Polygon.prototype.setPositions = function(positions) {
         // positions can be undefined
+
+        //>>includeStart('debug', pragmas.debug);
         if (defined(positions) && (positions.length < 3)) {
             throw new DeveloperError('At least three positions are required.');
         }
+        //>>includeEnd('debug');
+
         this._positions = positions;
         this._polygonHierarchy = undefined;
         this._createPrimitive = true;
@@ -269,15 +287,15 @@ define([
      * // A triangle within a triangle
      * var hierarchy = {
      *   positions : [
-     *     new Cartesian3(-634066.5629045101, -4608738.034138676, 4348640.761750969),
-     *     new Cartesian3(-1321523.0597310204, -5108871.981065817, 3570395.2500986718),
-     *     new Cartesian3(46839.74837473363, -5303481.972379478, 3530933.5841716)
+     *     new Cesium.Cartesian3(-634066.5629045101, -4608738.034138676, 4348640.761750969),
+     *     new Cesium.Cartesian3(-1321523.0597310204, -5108871.981065817, 3570395.2500986718),
+     *     new Cesium.Cartesian3(46839.74837473363, -5303481.972379478, 3530933.5841716)
      *   ],
      *   holes : [{
      *     positions :[
-     *       new Cartesian3(-646079.44483647, -4811233.11175887, 4123187.2266941597),
-     *       new Cartesian3(-1024015.4454943262, -5072141.413164587, 3716492.6173834214),
-     *       new Cartesian3(-234678.22583880965, -5189078.820849883, 3688809.059214336)
+     *       new Cesium.Cartesian3(-646079.44483647, -4811233.11175887, 4123187.2266941597),
+     *       new Cesium.Cartesian3(-1024015.4454943262, -5072141.413164587, 3716492.6173834214),
+     *       new Cesium.Cartesian3(-234678.22583880965, -5189078.820849883, 3688809.059214336)
      *     ]
      *   }]
      * };
@@ -292,17 +310,17 @@ define([
      * @private
      */
     Polygon.prototype.update = function(context, frameState, commandList) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(this.ellipsoid)) {
             throw new DeveloperError('this.ellipsoid must be defined.');
         }
-
         if (!defined(this.material)) {
             throw new DeveloperError('this.material must be defined.');
         }
-
         if (this.granularity < 0.0) {
             throw new DeveloperError('this.granularity and scene2D/scene3D overrides must be greater than zero.');
         }
+        //>>includeEnd('debug');
 
         if (!this.show) {
             return;
@@ -371,8 +389,10 @@ define([
             });
         }
 
-        this._primitive.appearance.material = this.material;
-        this._primitive.update(context, frameState, commandList);
+        var primitive = this._primitive;
+        primitive.debugShowBoundingVolume = this.debugShowBoundingVolume;
+        primitive.appearance.material = this.material;
+        primitive.update(context, frameState, commandList);
     };
 
     /**

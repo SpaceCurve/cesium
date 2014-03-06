@@ -45,10 +45,11 @@ define([
      * @param {Material} [options.material=undefined] The surface appearance of the primitive.
      * @param {Object} [options.id=undefined] A user-defined object to return when the instance is picked with {@link Scene#pick}
      * @param {Boolean} [options.asynchronous=true] Determines if the extent will be created asynchronously or block until ready.
+     * @param {Boolean} [options.debugShowBoundingVolume=false] For debugging only. Determines if the primitive's commands' bounding spheres are shown.
      *
      * @example
-     * var extentPrimitive = new ExtentPrimitive({
-     *   extent : Extent.fromDegrees(0.0, 20.0, 10.0, 30.0)
+     * var extentPrimitive = new Cesium.ExtentPrimitive({
+     *   extent : Cesium.Extent.fromDegrees(0.0, 20.0, 10.0, 30.0)
      * });
      * primitives.add(extentPrimitive);
      */
@@ -128,8 +129,9 @@ define([
          */
         this.show = defaultValue(options.show, true);
 
-        var material = Material.fromType(Material.ColorType);
-        material.uniforms.color = new Color(1.0, 1.0, 0.0, 0.5);
+        var material = Material.fromType(Material.ColorType, {
+            color : new Color(1.0, 1.0, 0.0, 0.5)
+        });
 
         /**
          * The surface appearance of the primitive.  This can be one of several built-in {@link Material} objects or a custom material, scripted with
@@ -142,10 +144,10 @@ define([
          *
          * @example
          * // 1. Change the color of the default material to yellow
-         * extent.material.uniforms.color = new Color(1.0, 1.0, 0.0, 1.0);
+         * extent.material.uniforms.color = new Cesium.Color(1.0, 1.0, 0.0, 1.0);
          *
          * // 2. Change material to horizontal stripes
-         * extent.material = Material.fromType(Material.StripeType);
+         * extent.material = Cesium.Material.fromType(Material.StripeType);
          *
          * @see <a href='https://github.com/AnalyticalGraphicsInc/cesium/wiki/Fabric'>Fabric</a>
          */
@@ -173,6 +175,18 @@ define([
          */
         this.asynchronous = defaultValue(options.asynchronous, true);
 
+        /**
+         * This property is for debugging only; it is not for production use nor is it optimized.
+         * <p>
+         * Draws the bounding sphere for each {@link DrawCommand} in the primitive.
+         * </p>
+         *
+         * @type {Boolean}
+         *
+         * @default false
+         */
+        this.debugShowBoundingVolume = defaultValue(options.debugShowBoundingVolume, false);
+
         this._primitive = undefined;
     };
 
@@ -180,17 +194,17 @@ define([
      * @private
      */
     ExtentPrimitive.prototype.update = function(context, frameState, commandList) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(this.ellipsoid)) {
             throw new DeveloperError('this.ellipsoid must be defined.');
         }
-
         if (!defined(this.material)) {
             throw new DeveloperError('this.material must be defined.');
         }
-
         if (this.granularity < 0.0) {
             throw new DeveloperError('this.granularity and scene2D/scene3D overrides must be greater than zero.');
         }
+        //>>includeEnd('debug');
 
         if (!this.show || (!defined(this.extent))) {
             return;
@@ -239,8 +253,10 @@ define([
             });
         }
 
-        this._primitive.appearance.material = this.material;
-        this._primitive.update(context, frameState, commandList);
+        var primitive = this._primitive;
+        primitive.appearance.material = this.material;
+        primitive.debugShowBoundingVolume = this.debugShowBoundingVolume;
+        primitive.update(context, frameState, commandList);
     };
 
     /**

@@ -227,7 +227,6 @@ define([
      * @param value The number whose hyperbolic sine is to be returned.
      *
      * @returns The hyperbolic sine of {@code value}.
-     *
      */
     CesiumMath.sinh = function(value) {
         var part1 = Math.pow(Math.E, value);
@@ -408,7 +407,7 @@ define([
      *
      * @example
      * // Convert 270 degrees to -90 degrees longitude
-     * var longitude = CesiumMath.convertLongitudeRange(CesiumMath.toRadians(270.0));
+     * var longitude = Cesium.Math.convertLongitudeRange(Cesium.Math.toRadians(270.0));
      */
     CesiumMath.convertLongitudeRange = function(angle) {
         var twoPi = CesiumMath.TWO_PI;
@@ -481,14 +480,16 @@ define([
      *
      * @example
      * //Compute 7!, which is equal to 5040
-     * var computedFactorial = CesiumMath.factorial(7);
+     * var computedFactorial = Cesium.Math.factorial(7);
      *
      * @exception {DeveloperError} A number greater than or equal to 0 is required.
      */
     CesiumMath.factorial = function(n) {
+        //>>includeStart('debug', pragmas.debug);
         if (typeof n !== 'number' || n < 0) {
             throw new DeveloperError('A number greater than or equal to 0 is required.');
         }
+        //>>includeEnd('debug');
 
         var length = factorials.length;
         if (n >= length) {
@@ -512,17 +513,19 @@ define([
      * @returns {Number} The incremented number.
      *
      * @example
-     * var n = CesiumMath.incrementWrap(5, 10, 0); // returns 6
-     * var n = CesiumMath.incrementWrap(10, 10, 0); // returns 0
+     * var n = Cesium.Math.incrementWrap(5, 10, 0); // returns 6
+     * var n = Cesium.Math.incrementWrap(10, 10, 0); // returns 0
      *
      * @exception {DeveloperError} Maximum value must be greater than minimum value.
      */
     CesiumMath.incrementWrap = function(n, maximumValue, minimumValue) {
         minimumValue = defaultValue(minimumValue, 0.0);
 
+        //>>includeStart('debug', pragmas.debug);
         if (maximumValue <= minimumValue) {
             throw new DeveloperError('Maximum value must be greater than minimum value.');
         }
+        //>>includeEnd('debug');
 
         ++n;
         if (n > maximumValue) {
@@ -540,19 +543,54 @@ define([
      *
      * @returns {Boolean} <code>true</code> if the number if a power of two; otherwise, <code>false</code>.
      *
-     * @example
-     * var t = CesiumMath.isPowerOfTwo(16); // true
-     * var f = CesiumMath.isPowerOfTwo(20); // false
-     *
      * @exception {DeveloperError} A number greater than or equal to 0 is required.
+     *
+     * @example
+     * var t = Cesium.Math.isPowerOfTwo(16); // true
+     * var f = Cesium.Math.isPowerOfTwo(20); // false
      */
     CesiumMath.isPowerOfTwo = function(n) {
+        //>>includeStart('debug', pragmas.debug);
         if (typeof n !== 'number' || n < 0) {
             throw new DeveloperError('A number greater than or equal to 0 is required.');
         }
+        //>>includeEnd('debug');
 
-        var m = defaultValue(n, 0);
-        return (m !== 0) && ((m & (m - 1)) === 0);
+        return (n !== 0) && ((n & (n - 1)) === 0);
+    };
+
+    /**
+     * Computes the next power-of-two integer greater than or equal to the provided positive integer.
+     *
+     * @memberof CesiumMath
+     *
+     * @param {Number} n The positive integer to test.
+     *
+     * @returns {Number} The next power-of-two integer.
+     *
+     * @exception {DeveloperError} A number greater than or equal to 0 is required.
+     *
+     * @example
+     * var n = Cesium.Math.nextPowerOfTwo(29); // 32
+     * var m = Cesium.Math.nextPowerOfTwo(32); // 32
+     */
+    CesiumMath.nextPowerOfTwo = function(n) {
+        //>>includeStart('debug', pragmas.debug);
+        if (typeof n !== 'number' || n < 0) {
+            throw new DeveloperError('A number greater than or equal to 0 is required.');
+        }
+        //>>includeEnd('debug');
+
+        // From http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+        --n;
+        n |= n >> 1;
+        n |= n >> 2;
+        n |= n >> 4;
+        n |= n >> 8;
+        n |= n >> 16;
+        ++n;
+
+        return n;
     };
 
     /**
@@ -578,13 +616,14 @@ define([
      * @memberof CesiumMath
      *
      * @param {Number} seed An integer used as the seed.
-     *
-     * @exception {DeveloperError} seed is required.
      */
     CesiumMath.setRandomNumberSeed = function(seed) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(seed)) {
             throw new DeveloperError('seed is required.');
         }
+        //>>includeEnd('debug');
+
         randomNumberGenerator = new MersenneTwister(seed);
     };
 

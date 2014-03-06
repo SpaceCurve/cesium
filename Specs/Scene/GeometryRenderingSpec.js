@@ -259,7 +259,7 @@ defineSuite([
                                                   0.0, 1.0, 0.0, 0.0,
                                                   0.0, 0.0, 0.0, 1.0);
         var frustum = new OrthographicFrustum();
-        frustum.right = ellipsoid.getMaximumRadius() * Math.PI;
+        frustum.right = ellipsoid.maximumRadius * Math.PI;
         frustum.left = -frustum.right;
         frustum.top = frustum.right;
         frustum.bottom = -frustum.top;
@@ -508,7 +508,7 @@ defineSuite([
                     center : ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-100, 20)),
                     semiMinorAxis : 1000000.0,
                     semiMajorAxis : 1000000.0,
-                    bearing : CesiumMath.PI_OVER_FOUR
+                    rotation : CesiumMath.PI_OVER_FOUR
                 }),
                 id : 'ellipse',
                 attributes : {
@@ -1038,6 +1038,52 @@ defineSuite([
             };
             render3D(instance, afterView);
         });
+
+        it('renders with correct winding order in southern hemisphere', function() {
+            var primitive = new Primitive({
+                geometryInstances : new GeometryInstance({
+                    geometry : PolygonGeometry.fromPositions({
+                        vertexFormat : PerInstanceColorAppearance.VERTEX_FORMAT,
+                        ellipsoid : ellipsoid,
+                        positions : ellipsoid.cartographicArrayToCartesianArray([
+                            Cartographic.fromDegrees(-108.0, -25.0, 500000),
+                            Cartographic.fromDegrees(-100.0, -25.0, 500000),
+                            Cartographic.fromDegrees(-100.0, -30.0, 500000),
+                            Cartographic.fromDegrees(-108.0, -30.0, 500000)
+                        ]),
+                        perPositionHeight : true,
+                        extrudedHeight: 0
+                    }),
+                    id : 'extrudedPolygon',
+                    attributes : {
+                        color : new ColorGeometryInstanceAttribute(1.0, 1.0, 0.0, 1.0)
+                    }
+                }),
+                appearance : new PerInstanceColorAppearance({
+                    closed : true,
+                    translucent : false
+                }),
+                asynchronous : false
+            });
+
+            var frameState = createFrameState();
+            primitive.update(context, frameState, []);
+            viewSphere3D(frameState.camera, primitive._boundingSphere, primitive.modelMatrix);
+
+            var transform = Transforms.eastNorthUpToFixedFrame(primitive._boundingSphere.center);
+            frameState.camera.controller.rotateDown(-CesiumMath.PI_OVER_TWO, transform);
+            frameState.camera.controller.moveForward(primitive._boundingSphere.radius * 0.75);
+
+            context.getUniformState().update(context, frameState);
+
+            ClearCommand.ALL.execute(context);
+            expect(context.readPixels()).toEqual([0, 0, 0, 0]);
+
+            render(context, frameState, primitive);
+            expect(context.readPixels()).toEqual([0, 0, 0, 0]);
+
+            primitive = primitive && primitive.destroy();
+        });
     }, 'WebGL');
 
 
@@ -1412,7 +1458,7 @@ defineSuite([
             });
             render3D(instance);
         });
-    });
+    }, 'WebGL');
 
     describe('PolylineGeometry', function() {
         var instance;
@@ -1488,7 +1534,7 @@ defineSuite([
             });
             render3D(instance, undefined, appearance);
         });
-    });
+    }, 'WebGL');
 
     describe('Custom geometry', function() {
         describe('with indices', function() {
@@ -1534,7 +1580,7 @@ defineSuite([
             it('pick', function() {
                 pickGeometry(instance);
             });
-        });
+        }, 'WebGL');
 
         describe('without indices', function() {
             var instance;
@@ -1580,7 +1626,7 @@ defineSuite([
             it('pick', function() {
                 pickGeometry(instance);
             });
-        });
+        }, 'WebGL');
     });
 
-});
+}, 'WebGL');

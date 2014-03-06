@@ -9,8 +9,9 @@ define([
         '../Core/HermiteSpline',
         '../Core/Math',
         '../Core/Matrix3',
-        '../Core/OrientationInterpolator',
+        '../Core/Matrix4',
         '../Core/Quaternion',
+        '../Core/QuaternionSpline',
         '../Scene/PerspectiveFrustum',
         '../Scene/PerspectiveOffCenterFrustum',
         '../Scene/SceneMode',
@@ -25,8 +26,9 @@ define([
         HermiteSpline,
         CesiumMath,
         Matrix3,
-        OrientationInterpolator,
+        Matrix4,
         Quaternion,
+        QuaternionSpline,
         PerspectiveFrustum,
         PerspectiveOffCenterFrustum,
         SceneMode,
@@ -85,31 +87,9 @@ define([
         return Math.max(dx, dy);
     }
 
-    function createSpline(points) {
-        if (points.length > 2) {
-            return new HermiteSpline(points);
-        }
-
-        // only two points, use linear interpolation
-        var p = points[0];
-        var q = points[1];
-
-        return {
-            getControlPoints : function() {
-                return points;
-            },
-
-            evaluate : function(time, result) {
-                time = CesiumMath.clamp(time, p.time, q.time);
-                var t = (time - p.time) / (q.time - p.time);
-                return Cartesian3.lerp(p.point, q.point, t, result);
-            }
-        };
-    }
-
-    function createPath3D(camera, ellipsoid, start, end, duration) {
+    function createPath3D(camera, ellipsoid, start, up, right, end, duration) {
         // get minimum altitude from which the whole ellipsoid is visible
-        var radius = ellipsoid.getMaximumRadius();
+        var radius = ellipsoid.maximumRadius;
         var frustum = camera.frustum;
         var maxStartAlt = getAltitude(frustum, radius, radius);
 
@@ -124,8 +104,8 @@ define([
         } else {
             var diff = Cartesian3.subtract(start, end);
             altitude = Cartesian3.magnitude(Cartesian3.add(Cartesian3.multiplyByScalar(diff, 0.5), end));
-            var verticalDistance = Cartesian3.magnitude(Cartesian3.multiplyByScalar(camera.up, Cartesian3.dot(diff, camera.up)));
-            var horizontalDistance = Cartesian3.magnitude(Cartesian3.multiplyByScalar(camera.right, Cartesian3.dot(diff, camera.right)));
+            var verticalDistance = Cartesian3.magnitude(Cartesian3.multiplyByScalar(up, Cartesian3.dot(diff, up)));
+            var horizontalDistance = Cartesian3.magnitude(Cartesian3.multiplyByScalar(right, Cartesian3.dot(diff, right)));
             altitude += getAltitude(frustum, verticalDistance, horizontalDistance);
             incrementPercentage = CesiumMath.clamp(dot + 1.0, 0.25, 0.5);
         }
@@ -136,28 +116,12 @@ define([
         var axis, angle, rotation, middle;
         if (Cartesian3.magnitude(end) > maxStartAlt && dot > 0.75) {
             middle = Cartesian3.add(Cartesian3.multiplyByScalar(Cartesian3.subtract(start, end), 0.5), end);
-
-            points = [{
-                point : start
-            }, {
-                point : middle
-            }, {
-                point : end
-            }];
+            points = [ start, middle, end ];
         } else if (Cartesian3.magnitude(start) > maxStartAlt && dot > 0) {
             middle = Cartesian3.add(Cartesian3.multiplyByScalar(Cartesian3.subtract(start, aboveEnd), 0.5), aboveEnd);
-
-            points = [{
-                point : start
-            }, {
-                point : middle
-            }, {
-                point : end
-            }];
+            points = [ start, middle, end ];
         } else {
-            points = [{
-                point : start
-            }];
+            points = [ start ];
 
             angle = Math.acos(Cartesian3.dot(Cartesian3.normalize(afterStart), Cartesian3.normalize(aboveEnd)));
             axis = Cartesian3.cross(aboveEnd, afterStart);
@@ -169,68 +133,92 @@ define([
             var startCondition = angle - increment;
             for ( var i = startCondition; i > 0.0; i = i - increment) {
                 rotation = Matrix3.fromQuaternion(Quaternion.fromAxisAngle(axis, i));
-                points.push({
-                    point : Matrix3.multiplyByVector(rotation, aboveEnd)
-                });
+                points.push(Matrix3.multiplyByVector(rotation, aboveEnd));
             }
 
-            points.push({
-                point : end
-            });
+            points.push(end);
         }
 
+        var times = new Array(points.length);
         var scalar = duration / (points.length - 1);
         for ( var k = 0; k < points.length; ++k) {
-            points[k].time = k * scalar;
+            times[k] = k * scalar;
         }
 
-        return createSpline(points);
+        return HermiteSpline.createNaturalCubic({
+            points : points,
+            times : times
+        });
     }
+
     var direction3D = new Cartesian3();
     var right3D = new Cartesian3();
     var up3D = new Cartesian3();
     var quat3D = new Quaternion();
-    function createOrientations3D(camera, points, endDirection, endUp) {
-        points[0].orientation = createQuaternion(camera.direction, camera.up);
+
+    function createOrientations3D(path, startDirection, startUp, endDirection, endUp) {
+        var points = path.points;
+        var orientations = new Array(points.length);
+        orientations[0] = createQuaternion(startDirection, startUp);
+
         var point;
         var length = points.length - 1;
         for (var i = 1; i < length; ++i) {
             point = points[i];
-            Cartesian3.normalize(Cartesian3.negate(point.point, direction3D), direction3D);
+            Cartesian3.normalize(Cartesian3.negate(point, direction3D), direction3D);
             Cartesian3.normalize(Cartesian3.cross(direction3D, Cartesian3.UNIT_Z, right3D), right3D);
             Cartesian3.cross(right3D, direction3D, up3D);
-            point.orientation = createQuaternion(direction3D, up3D, quat3D);
+            orientations[i] = createQuaternion(direction3D, up3D, quat3D);
         }
 
         point = points[length];
         if (defined(endDirection) && defined(endUp)) {
-            point.orientation = createQuaternion(endDirection, endUp);
+            orientations[length] = createQuaternion(endDirection, endUp);
         } else {
-            Cartesian3.normalize(Cartesian3.negate(point.point, direction3D), direction3D);
+            Cartesian3.normalize(Cartesian3.negate(point, direction3D), direction3D);
             Cartesian3.normalize(Cartesian3.cross(direction3D, Cartesian3.UNIT_Z, right3D), right3D);
             Cartesian3.cross(right3D, direction3D, up3D);
-            point.orientation = createQuaternion(direction3D, up3D, quat3D);
+            orientations[length] = createQuaternion(direction3D, up3D, quat3D);
         }
 
-        return new OrientationInterpolator(points);
+        return new QuaternionSpline({
+            points : orientations,
+            times : path.times
+        });
     }
+
+    var scratchStartPosition = new Cartesian3();
+    var scratchStartDirection = new Cartesian3();
+    var scratchStartUp = new Cartesian3();
+    var scratchStartRight = new Cartesian3();
+    var currentFrame = new Matrix4();
 
     function createUpdate3D(frameState, destination, duration, direction, up) {
         var camera = frameState.camera;
-        var ellipsoid = frameState.scene2D.projection.getEllipsoid();
+        var ellipsoid = frameState.scene2D.projection.ellipsoid;
 
-        var path = createPath3D(camera, ellipsoid, camera.position, destination, duration);
-        var orientations = createOrientations3D(camera, path.getControlPoints(), direction, up);
+        var start = Matrix4.multiplyByPoint(camera.transform, camera.position, scratchStartPosition);
+        var startDirection = Matrix4.multiplyByPointAsVector(camera.transform, camera.direction, scratchStartDirection);
+        var startUp = Matrix4.multiplyByPointAsVector(camera.transform, camera.up, scratchStartUp);
+        var startRight = Cartesian3.cross(startDirection, startUp, scratchStartRight);
+
+        var path = createPath3D(camera, ellipsoid, start, startUp, startRight, destination, duration);
+        var orientations = createOrientations3D(path, startDirection, startUp, direction, up);
 
         var update = function(value) {
             var time = value.time;
             var orientation = orientations.evaluate(time);
             Matrix3.fromQuaternion(orientation, rotMatrix);
 
+            Matrix4.clone(camera.transform, currentFrame);
+            Matrix4.clone(Matrix4.IDENTITY, camera.transform);
+
             camera.position = path.evaluate(time, camera.position);
             camera.right = Matrix3.getRow(rotMatrix, 0, camera.right);
             camera.up = Matrix3.getRow(rotMatrix, 1, camera.up);
             camera.direction = Cartesian3.negate(Matrix3.getRow(rotMatrix, 2, camera.direction), camera.direction);
+
+            camera.controller.setTransform(currentFrame);
         };
 
         return update;
@@ -238,7 +226,7 @@ define([
 
     function createPath2D(camera, ellipsoid, start, end, duration) {
         // get minimum altitude from which the whole map is visible
-        var radius = ellipsoid.getMaximumRadius();
+        var radius = ellipsoid.maximumRadius;
         var frustum = camera.frustum;
         var maxStartAlt = getAltitude(frustum, Math.PI * radius,  CesiumMath.PI_OVER_TWO * radius);
 
@@ -260,28 +248,12 @@ define([
         var middle;
         if (end.z > maxStartAlt) {
             middle = Cartesian3.add(Cartesian3.multiplyByScalar(Cartesian3.subtract(start, end), 0.5), end);
-
-            points = [{
-                point : start
-            }, {
-                point : middle
-            }, {
-                point : end
-            }];
+            points = [ start, middle, end ];
         } else if (start.z > maxStartAlt) {
             middle = Cartesian3.add(Cartesian3.multiplyByScalar(Cartesian3.subtract(start, aboveEnd), 0.5), aboveEnd);
-
-            points = [{
-                point : start
-            }, {
-                point : middle
-            }, {
-                point : end
-            }];
+            points = [ start, middle, end ];
         } else {
-            points = [{
-                point : start
-            }];
+            points = [ start ];
 
             var v = Cartesian3.subtract(afterStart, aboveEnd);
             var distance = Cartesian3.magnitude(v);
@@ -290,63 +262,77 @@ define([
             var increment = incrementPercentage * distance;
             var startCondition = distance - increment;
             for ( var i = startCondition; i > 0.0; i = i - increment) {
-                points.push({
-                    point : Cartesian3.add(Cartesian3.multiplyByScalar(v, i), aboveEnd)
-                });
+                points.push(Cartesian3.add(Cartesian3.multiplyByScalar(v, i), aboveEnd));
             }
 
-            points.push({
-                point : end
-            });
+            points.push(end);
         }
 
+        var times = new Array(points.length);
         var scalar = duration / (points.length - 1);
         for ( var k = 0; k < points.length; ++k) {
-            points[k].time = k * scalar;
+            times[k] = k * scalar;
         }
 
-        return createSpline(points);
+        return HermiteSpline.createNaturalCubic({
+            points : points,
+            times : times
+        });
     }
 
     var direction2D = Cartesian3.negate(Cartesian3.UNIT_Z);
     var right2D = Cartesian3.normalize(Cartesian3.cross(direction2D, Cartesian3.UNIT_Y));
     var up2D = Cartesian3.cross(right2D, direction2D);
     var quat = createQuaternion(direction2D, up2D);
-    function createOrientations2D(camera, points, endDirection, endUp) {
-        points[0].orientation = createQuaternion(camera.direction, camera.up);
-        var point;
+
+    function createOrientations2D(camera, path, endDirection, endUp) {
+        var points = path.points;
+        var orientations = new Array(points.length);
+        orientations[0] = createQuaternion(camera.direction, camera.up);
+
         var length = points.length - 1;
         for (var i = 1; i < length; ++i) {
-            point = points[i];
-            point.orientation = quat;
+            orientations[i] = quat;
         }
 
-        point = points[length];
         if (defined(endDirection) && defined(endUp)) {
-            point.orientation = createQuaternion(endDirection, endUp);
+            orientations[length] = createQuaternion(endDirection, endUp);
         } else {
-            point.orientation = quat;
+            orientations[length] = quat;
         }
 
-        return new OrientationInterpolator(points);
+        return new QuaternionSpline({
+            points : orientations,
+            times : path.times
+        });
     }
+
+    var transform2D = new Matrix4(0, 0, 1, 0,
+                                  1, 0, 0, 0,
+                                  0, 1, 0, 0,
+                                  0, 0, 0, 1);
 
     function createUpdateCV(frameState, destination, duration, direction, up) {
         var camera = frameState.camera;
-        var ellipsoid = frameState.scene2D.projection.getEllipsoid();
+        var ellipsoid = frameState.scene2D.projection.ellipsoid;
 
         var path = createPath2D(camera, ellipsoid, Cartesian3.clone(camera.position), destination, duration);
-        var orientations = createOrientations2D(camera, path.getControlPoints(), direction, up);
+        var orientations = createOrientations2D(camera, path, direction, up);
 
         var update = function(value) {
             var time = value.time;
             var orientation = orientations.evaluate(time);
             Matrix3.fromQuaternion(orientation, rotMatrix);
 
+            Matrix4.clone(camera.transform, currentFrame);
+            Matrix4.clone(transform2D, camera.transform);
+
             camera.position = path.evaluate(time, camera.position);
             camera.right = Matrix3.getRow(rotMatrix, 0, camera.right);
             camera.up = Matrix3.getRow(rotMatrix, 1, camera.up);
             camera.direction = Cartesian3.negate(Matrix3.getRow(rotMatrix, 2, camera.direction), camera.direction);
+
+            camera.controller.setTransform(currentFrame);
         };
 
         return update;
@@ -354,14 +340,13 @@ define([
 
     function createUpdate2D(frameState, destination, duration, direction, up) {
         var camera = frameState.camera;
-        var ellipsoid = frameState.scene2D.projection.getEllipsoid();
+        var ellipsoid = frameState.scene2D.projection.ellipsoid;
 
         var start = Cartesian3.clone(camera.position);
         start.z = camera.frustum.right - camera.frustum.left;
 
         var path = createPath2D(camera, ellipsoid, start, destination, duration);
-        var points = path.getControlPoints();
-        var orientations = createOrientations2D(camera, points, Cartesian3.negate(Cartesian3.UNIT_Z), up);
+        var orientations = createOrientations2D(camera, path, Cartesian3.negate(Cartesian3.UNIT_Z), up);
 
         var height = camera.position.z;
 
@@ -370,7 +355,7 @@ define([
             var orientation = orientations.evaluate(time);
             Matrix3.fromQuaternion(orientation, rotMatrix);
 
-            camera.position = path.evaluate(time, camera.position);
+            camera.position = path.evaluate(time);
             var zoom = camera.position.z;
             camera.position.z = height;
 
@@ -391,33 +376,9 @@ define([
         return update;
     }
 
-    function disableInput(controller) {
-      var backup = {
-          enableTranslate: controller.enableTranslate,
-          enableZoom: controller.enableZoom,
-          enableRotate: controller.enableRotate,
-          enableTilt: controller.enableTilt,
-          enableLook: controller.enableLook
-      };
-      controller.enableTranslate = false;
-      controller.enableZoom = false;
-      controller.enableRotate = false;
-      controller.enableTilt = false;
-      controller.enableLook = false;
-      return backup;
-    }
-
-    function restoreInput(controller, backup) {
-      controller.enableTranslate = backup.enableTranslate;
-      controller.enableZoom = backup.enableZoom;
-      controller.enableRotate = backup.enableRotate;
-      controller.enableTilt = backup.enableTilt;
-      controller.enableLook = backup.enableLook;
-    }
-
     /**
      * Creates an animation to fly the camera from it's current position to a position given by a Cartesian. All arguments should
-     * be in the current camera reference frame.
+     * be given in world coordinates.
      *
      * @param {Scene} scene The scene instance to use.
      * @param {Cartesian3} description.destination The final position of the camera.
@@ -426,15 +387,14 @@ define([
      * @param {Number} [description.duration=3000] The duration of the animation in milliseconds.
      * @param {Function} [onComplete] The function to execute when the animation has completed.
      * @param {Function} [onCancel] The function to execute if the animation is cancelled.
+     * @param {Matrix4} [endReferenceFrame] The reference frame the camera will be in when the flight is completed.
      *
      * @returns {Object} An Object that can be added to an {@link AnimationCollection} for animation.
      *
-     * @exception {DeveloperError} scene is required.
-     * @exception {DeveloperError} description.destination is required.
      * @exception {DeveloperError} frameState.mode cannot be SceneMode.MORPHING
      * @exception {DeveloperError} If either direction or up is given, then both are required.
      *
-     * @see Scene#getAnimations
+     * @see Scene#animations
      */
     var dirScratch = new Cartesian3();
     var rightScratch = new Cartesian3();
@@ -445,41 +405,45 @@ define([
         var direction = description.direction;
         var up = description.up;
 
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(scene)) {
             throw new DeveloperError('scene is required.');
         }
-
         if (!defined(destination)) {
             throw new DeveloperError('destination is required.');
         }
-
         if ((defined(direction) && !defined(up)) || (defined(up) && !defined(direction))) {
             throw new DeveloperError('If either direction or up is given, then both are required.');
         }
-
-        var frameState = scene.getFrameState();
-        if (frameState.mode === SceneMode.MORPHING) {
+        if (scene.frameState.mode === SceneMode.MORPHING) {
             throw new DeveloperError('frameState.mode cannot be SceneMode.MORPHING');
         }
+        //>>includeEnd('debug');
 
         var duration = defaultValue(description.duration, 3000.0);
+        var frameState = scene.frameState;
+        var controller = scene.screenSpaceCameraController;
+        controller.enableInputs = false;
 
-        var controller = scene.getScreenSpaceCameraController();
-        var backup = disableInput(controller);
         var wrapCallback = function(cb) {
             var wrapped = function() {
                 if (typeof cb === 'function') {
                     cb();
                 }
-                restoreInput(controller, backup);
+
+                controller.enableInputs = true;
             };
             return wrapped;
         };
         var onComplete = wrapCallback(description.onComplete);
         var onCancel = wrapCallback(description.onCancel);
 
-        var frustum = frameState.camera.frustum;
+        var referenceFrame = description.endReferenceFrame;
+        if (defined(referenceFrame)) {
+            scene.camera.controller.setTransform(referenceFrame);
+        }
 
+        var frustum = frameState.camera.frustum;
         if (frameState.mode === SceneMode.SCENE2D) {
             if (Cartesian2.equalsEpsilon(frameState.camera.position, destination, CesiumMath.EPSILON6) && (CesiumMath.equalsEpsilon(Math.max(frustum.right - frustum.left, frustum.top - frustum.bottom), destination.z, CesiumMath.EPSILON6))) {
                 return {
@@ -526,8 +490,6 @@ define([
 
                 if (frameState.mode === SceneMode.SCENE2D) {
                     var zoom = frameState.camera.position.z;
-
-
                     var ratio = frustum.top / frustum.right;
 
                     var incrementAmount = (zoom - (frustum.right - frustum.left)) * 0.5;
@@ -573,8 +535,8 @@ define([
     };
 
     /**
-     * Creates an animation to fly the camera from it's current position to a position given by a Cartographic. Keep in mind that the animation
-     * will happen in the camera's current reference frame.
+     * Creates an animation to fly the camera from it's current position to a position given by a Cartographic. All arguments should
+     * be given in world coordinates.
      *
      * @param {Scene} scene The scene instance to use.
      * @param {Cartographic} description.destination The final position of the camera.
@@ -583,30 +545,31 @@ define([
      * @param {Number} [description.duration=3000] The duration of the animation in milliseconds.
      * @param {Function} [onComplete] The function to execute when the animation has completed.
      * @param {Function} [onCancel] The function to execute if the animation is cancelled.
+     * @param {Matrix4} [endReferenceFrame] The reference frame the camera will be in when the flight is completed.
      *
      * @returns {Object} An Object that can be added to an {@link AnimationCollection} for animation.
      *
-     * @exception {DeveloperError} scene is required.
-     * @exception {DeveloperError} description.destination is required.
      * @exception {DeveloperError} frameState.mode cannot be SceneMode.MORPHING
      *
-     * @see Scene#getAnimations
+     * @see Scene#animations
      */
     CameraFlightPath.createAnimationCartographic = function(scene, description) {
         description = defaultValue(description, defaultValue.EMPTY_OBJECT);
         var destination = description.destination;
 
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(scene)) {
             throw new DeveloperError('scene is required.');
         }
         if (!defined(destination)) {
             throw new DeveloperError('description.destination is required.');
         }
+        //>>includeEnd('debug');
 
-        var frameState = scene.getFrameState();
+        var frameState = scene.frameState;
         var projection = frameState.scene2D.projection;
         if (frameState.mode === SceneMode.SCENE3D) {
-            var ellipsoid = projection.getEllipsoid();
+            var ellipsoid = projection.ellipsoid;
             ellipsoid.cartographicToCartesian(destination, c3destination);
         } else if (frameState.mode === SceneMode.COLUMBUS_VIEW || frameState.mode === SceneMode.SCENE2D) {
             projection.project(destination, c3destination);
@@ -620,27 +583,28 @@ define([
     };
 
     /**
-     * Creates an animation to fly the camera from it's current position to a position in which the entire extent will be visible. Keep in mind that the animation
-     * will happen in the camera's current reference frame.
+     * Creates an animation to fly the camera from it's current position to a position in which the entire extent will be visible. All arguments should
+     * be given in world coordinates.
      *
      * @param {Scene} scene The scene instance to use.
      * @param {Extent} description.destination The final position of the camera.
      * @param {Number} [description.duration=3000] The duration of the animation in milliseconds.
      * @param {Function} [onComplete] The function to execute when the animation has completed.
      * @param {Function} [onCancel] The function to execute if the animation is cancelled.
+     * @param {Matrix4} [endReferenceFrame] The reference frame the camera will be in when the flight is completed.
      *
      * @returns {Object} An Object that can be added to an {@link AnimationCollection} for animation.
      *
-     * @exception {DeveloperError} scene is required.
-     * @exception {DeveloperError} description.destination is required.
      * @exception {DeveloperError} frameState.mode cannot be SceneMode.MORPHING
      *
-     * @see Scene#getAnimations
+     * @see Scene#animations
      */
     CameraFlightPath.createAnimationExtent = function(scene, description) {
         description = defaultValue(description, defaultValue.EMPTY_OBJECT);
         var extent = description.destination;
-        var frameState = scene.getFrameState();
+        var frameState = scene.frameState;
+
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(frameState)) {
             throw new DeveloperError('frameState is required.');
         }
@@ -650,6 +614,7 @@ define([
         if (frameState.mode === SceneMode.MORPHING) {
             throw new DeveloperError('frameState.mode cannot be SceneMode.MORPHING');
         }
+        //>>includeEnd('debug');
 
         var createAnimationDescription = clone(description);
         var camera = frameState.camera;

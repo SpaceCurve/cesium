@@ -157,7 +157,7 @@ define([
                 camera.transform = Transforms.eastNorthUpToFixedFrame(cartesian, ellipsoid, update3DTransform);
             }
 
-            that._screenSpaceCameraController.setEllipsoid(Ellipsoid.UNIT_SPHERE);
+            that._screenSpaceCameraController.ellipsoid = Ellipsoid.UNIT_SPHERE;
 
             var position = camera.position;
             Cartesian3.clone(position, that._lastOffset);
@@ -184,10 +184,8 @@ define([
 
             var controller = that._screenSpaceCameraController;
             controller.enableTranslate = false;
-            controller.setEllipsoid(Ellipsoid.UNIT_SPHERE);
+            controller.ellipsoid = Ellipsoid.UNIT_SPHERE;
             controller.columbusViewMode = CameraColumbusViewMode.LOCKED;
-
-            camera.controller.constrainedAxis = Cartesian3.UNIT_Z;
 
             var position = camera.position;
             Cartesian3.clone(position, that._lastOffset);
@@ -200,7 +198,6 @@ define([
 
     function update3DController(that, camera, objectChanged, offset) {
         var scene = that.scene;
-        camera.controller.constrainedAxis = Cartesian3.UNIT_Z;
 
         if (objectChanged) {
             camera.controller.lookAt(offset, Cartesian3.ZERO, Cartesian3.UNIT_Z);
@@ -239,7 +236,7 @@ define([
 
     /**
      * A utility object for tracking an object with the camera.
-     * @alias DynamicObject
+     * @alias DynamicObjectView
      * @constructor
      *
      * @param {DynamicObject} dynamicObject The object to track with the camera.
@@ -293,42 +290,36 @@ define([
     * to the latest settings.
     * @param {JulianDate} time The current animation time.
     *
-    * @exception {DeveloperError} time is required.
-    * @exception {DeveloperError} DynamicObjectView.scene is required.
-    * @exception {DeveloperError} DynamicObjectView.dynamicObject is required.
-    * @exception {DeveloperError} DynamicObjectView.ellipsoid is required.
-    * @exception {DeveloperError} DynamicObjectView.dynamicObject.position is required.
     */
     DynamicObjectView.prototype.update = function(time) {
+        var scene = this.scene;
+        var dynamicObject = this.dynamicObject;
+        var ellipsoid = this.ellipsoid;
+
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(time)) {
             throw new DeveloperError('time is required.');
         }
-
-        var scene = this.scene;
         if (!defined(scene)) {
             throw new DeveloperError('DynamicObjectView.scene is required.');
         }
-
-        if (scene !== this._lastScene) {
-            this._lastScene = scene;
-            this._screenSpaceCameraController = scene.getScreenSpaceCameraController();
-        }
-
-        var dynamicObject = this.dynamicObject;
         if (!defined(dynamicObject)) {
             throw new DeveloperError('DynamicObjectView.dynamicObject is required.');
         }
-
-        var ellipsoid = this.ellipsoid;
         if (!defined(ellipsoid)) {
             throw new DeveloperError('DynamicObjectView.ellipsoid is required.');
         }
-
-        var positionProperty = this.dynamicObject.position;
-        if (!defined(positionProperty)) {
+        if (!defined(dynamicObject.position)) {
             throw new DeveloperError('dynamicObject.position is required.');
         }
+        //>>includeEnd('debug');
 
+        if (scene !== this._lastScene) {
+            this._lastScene = scene;
+            this._screenSpaceCameraController = scene.screenSpaceCameraController;
+        }
+
+        var positionProperty = dynamicObject.position;
         var objectChanged = dynamicObject !== this._lastDynamicObject;
 
         //Determine what the current camera offset should be, this is used
@@ -363,11 +354,11 @@ define([
 
         var mode = scene.mode;
         if (mode === SceneMode.SCENE2D) {
-            update2D(this, scene.getCamera(), objectChanged, offset, positionProperty, time, ellipsoid, scene.scene2D.projection);
+            update2D(this, scene.camera, objectChanged, offset, positionProperty, time, ellipsoid, scene.scene2D.projection);
         } else if (mode === SceneMode.SCENE3D) {
-            update3D(this, scene.getCamera(), objectChanged, offset, positionProperty, time, ellipsoid);
+            update3D(this, scene.camera, objectChanged, offset, positionProperty, time, ellipsoid);
         } else if (mode === SceneMode.COLUMBUS_VIEW) {
-            updateColumbus(this, scene.getCamera(), objectChanged, offset, positionProperty, time, ellipsoid, scene.scene2D.projection);
+            updateColumbus(this, scene.camera, objectChanged, offset, positionProperty, time, ellipsoid, scene.scene2D.projection);
         }
     };
 

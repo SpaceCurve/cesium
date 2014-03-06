@@ -1,9 +1,13 @@
 /*global defineSuite*/
 defineSuite([
         'Core/TaskProcessor',
+        'Core/FeatureDetection',
+        'require',
         'Specs/waitsForPromise'
     ], function(
         TaskProcessor,
+        FeatureDetection,
+        require,
         waitsForPromise) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
@@ -12,10 +16,22 @@ defineSuite([
 
     beforeEach(function() {
         TaskProcessor._workerModulePrefix = '../Specs/TestWorkers/';
+
+        function absolutize(url) {
+            var a = document.createElement('a');
+            a.href = url;
+            a.href = a.href; // IE only absolutizes href on get, not set
+            return a.href;
+        }
+
+        TaskProcessor._loaderConfig = {
+            baseUrl : absolutize(require.toUrl('Specs/../Source'))
+        };
     });
 
     afterEach(function() {
         TaskProcessor._workerModulePrefix = TaskProcessor._defaultWorkerModulePrefix;
+        TaskProcessor._loaderConfig = undefined;
 
         if (taskProcessor && !taskProcessor.isDestroyed()) {
             taskProcessor = taskProcessor.destroy();
@@ -49,6 +65,11 @@ defineSuite([
     });
 
     it('can transfer array buffer', function() {
+        if (!FeatureDetection.supportsTransferringArrayBuffers()) {
+            // This browser cannot transer array buffers at all.
+            return;
+        }
+
         taskProcessor = new TaskProcessor('returnByteLength');
 
         var byteLength = 100;
@@ -67,6 +88,11 @@ defineSuite([
     });
 
     it('can transfer array buffer back from worker', function() {
+        if (!FeatureDetection.supportsTransferringArrayBuffers()) {
+            // This browser cannot transer array buffers at all.
+            return;
+        }
+
         taskProcessor = new TaskProcessor('transferArrayBuffer');
 
         var byteLength = 100;

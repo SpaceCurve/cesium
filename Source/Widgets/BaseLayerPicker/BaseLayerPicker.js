@@ -36,9 +36,7 @@ define([
      * @param {Element} container The parent HTML container node for this widget.
      * @param {ImageryLayerCollection} imageryLayers The imagery layer collection to use.
      *
-     * @exception {DeveloperError} container is required.
      * @exception {DeveloperError} Element with id "container" does not exist in the document.
-     * @exception {DeveloperError} imageryLayers is required.
      *
      * @see ImageryProvider
      * @see ImageryProviderViewModel
@@ -71,7 +69,7 @@ define([
      *in this global view of the Earth at night as seen by NASA/NOAA\'s Suomi NPP satellite.',
      *      creationFunction : function() {
      *          return new Cesium.TileMapServiceImageryProvider({
-     *              url : 'http://cesium.agi.com/blackmarble',
+     *              url : 'http://cesiumjs.org/blackmarble',
      *              maximumLevel : 8,
      *              credit : 'Black Marble imagery courtesy NASA Earth Observatory'
      *          });
@@ -93,52 +91,56 @@ define([
      * var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer', { imageryProvider: false });
      *
      * //Finally, create the baseLayerPicker widget using our view models.
-     * var layers = cesiumWidget.centralBody.getImageryLayers();
+     * var layers = cesiumWidget.centralBody.imageryLayers;
      * var baseLayerPicker = new Cesium.BaseLayerPicker('baseLayerPickerContainer', layers, providerViewModels);
      *
      * //Use the first item in the list as the current selection.
      * baseLayerPicker.viewModel.selectedItem = providerViewModels[0];
      */
     var BaseLayerPicker = function(container, imageryLayers, imageryProviderViewModels) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(container)) {
             throw new DeveloperError('container is required.');
         }
-
         if (!defined(imageryLayers)) {
             throw new DeveloperError('imageryLayers is required.');
         }
+        //>>includeEnd('debug');
 
         container = getElement(container);
 
         var viewModel = new BaseLayerPickerViewModel(imageryLayers, imageryProviderViewModels);
-        this._viewModel = viewModel;
-        this._container = container;
-        this._element = document.createElement('img');
 
-        var element = this._element;
-        element.setAttribute('draggable', 'false');
-        element.className = 'cesium-baseLayerPicker-selected';
+        var element = document.createElement('button');
+        element.type = 'button';
+        element.className = 'cesium-button cesium-toolbar-button';
         element.setAttribute('data-bind', '\
-                attr: {title: selectedName, src: selectedIconUrl},\
-                click: toggleDropDown');
+attr: { title: selectedName },\
+click: toggleDropDown');
         container.appendChild(element);
 
+        var imgElement = document.createElement('img');
+        imgElement.setAttribute('draggable', 'false');
+        imgElement.className = 'cesium-baseLayerPicker-selected';
+        imgElement.setAttribute('data-bind', '\
+attr: { src: selectedIconUrl }');
+        element.appendChild(imgElement);
+
         var choices = document.createElement('div');
-        this._choices = choices;
         choices.className = 'cesium-baseLayerPicker-dropDown';
         choices.setAttribute('data-bind', '\
-                css: { "cesium-baseLayerPicker-visible" : dropDownVisible,\
-                       "cesium-baseLayerPicker-hidden" : !dropDownVisible },\
-                foreach: imageryProviderViewModels');
+css: { "cesium-baseLayerPicker-visible" : dropDownVisible,\
+       "cesium-baseLayerPicker-hidden" : !dropDownVisible },\
+foreach: imageryProviderViewModels');
         container.appendChild(choices);
 
         var provider = document.createElement('div');
         provider.className = 'cesium-baseLayerPicker-item';
         provider.setAttribute('data-bind', '\
-                css: {"cesium-baseLayerPicker-selectedItem" : $data === $parent.selectedItem},\
-                attr: {title: tooltip},\
-                visible: creationCommand.canExecute,\
-                click: function($data) { $parent.selectedItem = $data }');
+css: { "cesium-baseLayerPicker-selectedItem" : $data === $parent.selectedItem },\
+attr: { title: tooltip },\
+visible: creationCommand.canExecute,\
+click: function($data) { $parent.selectedItem = $data; }');
         choices.appendChild(provider);
 
         var providerIcon = document.createElement('img');
@@ -152,10 +154,16 @@ define([
         providerLabel.setAttribute('data-bind', 'text: name');
         provider.appendChild(providerLabel);
 
-        knockout.applyBindings(viewModel, container);
+        knockout.applyBindings(viewModel, element);
+        knockout.applyBindings(viewModel, choices);
+
+        this._viewModel = viewModel;
+        this._container = container;
+        this._element = element;
+        this._choices = choices;
 
         this._closeDropDown = function(e) {
-            if (!container.contains(e.target)) {
+            if (!(element.contains(e.target) || choices.contains(e.target))) {
                 viewModel.dropDownVisible = false;
             }
         };
@@ -206,10 +214,10 @@ define([
     BaseLayerPicker.prototype.destroy = function() {
         document.removeEventListener('mousedown', this._closeDropDown, true);
         document.removeEventListener('touchstart', this._closeDropDown, true);
-        var container = this._container;
-        knockout.cleanNode(container);
-        container.removeChild(this._element);
-        container.removeChild(this._choices);
+        knockout.cleanNode(this._element);
+        knockout.cleanNode(this._choices);
+        this._container.removeChild(this._element);
+        this._container.removeChild(this._choices);
         return destroyObject(this);
     };
 

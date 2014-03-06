@@ -1,9 +1,11 @@
 /*global define*/
 define([
         '../Core/DeveloperError',
+        '../Core/defaultValue',
         '../Core/destroyObject'
     ], function(
         DeveloperError,
+        defaultValue,
         destroyObject) {
     "use strict";
 
@@ -32,20 +34,20 @@ define([
      * @memberof Buffer
      * @param {Number} [offsetInBytes=0] DOC_TBA
      *
-     * @exception {DeveloperError} arrayView is required.
      * @exception {DeveloperError} This buffer is not large enough.
      * @exception {DeveloperError} This buffer was destroyed, i.e., destroy() was called.
      */
     Buffer.prototype.copyFromArrayView = function(arrayView, offsetInBytes) {
+        offsetInBytes = defaultValue(offsetInBytes, 0);
+
+        //>>includeStart('debug', pragmas.debug);
         if (!arrayView) {
             throw new DeveloperError('arrayView is required.');
         }
-
-        offsetInBytes = offsetInBytes || 0;
-
         if (offsetInBytes + arrayView.byteLength > this._sizeInBytes) {
             throw new DeveloperError('This buffer is not large enough.');
         }
+        //>>includeEnd('debug');
 
         var gl = this._gl;
         var target = this._bufferTarget;

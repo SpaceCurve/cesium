@@ -101,23 +101,20 @@ define([
      * @alias AnimationViewModel
      * @constructor
      *
-     * @param {ClockViewModel} [clockViewModel] The ClockViewModel instance to use.
-     *
-     * @exception {DeveloperError} clockViewModel is required.
+     * @param {ClockViewModel} clockViewModel The ClockViewModel instance to use.
      *
      * @see Animation
      */
     var AnimationViewModel = function(clockViewModel) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(clockViewModel)) {
             throw new DeveloperError('clockViewModel is required.');
         }
+        //>>includeEnd('debug');
 
         var that = this;
-
         this._clockViewModel = clockViewModel;
-
         this._allShuttleRingTicks = [];
-
         this._dateFormatter = AnimationViewModel.defaultDateFormatter;
         this._timeFormatter = AnimationViewModel.defaultTimeFormatter;
 
@@ -146,7 +143,6 @@ define([
         /**
          * Gets the string representation of the current time.  This property is observable.
          * @type {String}
-         * @default undefined
          */
         this.timeLabel = undefined;
         knockout.defineProperty(this, 'timeLabel', function() {
@@ -156,7 +152,6 @@ define([
         /**
          * Gets the string representation of the current date.  This property is observable.
          * @type {String}
-         * @default undefined
          */
         this.dateLabel = undefined;
         knockout.defineProperty(this, 'dateLabel', function() {
@@ -166,7 +161,6 @@ define([
         /**
          * Gets the string representation of the current multiplier.  This property is observable.
          * @type {String}
-         * @default undefined
          */
         this.multiplierLabel = undefined;
         knockout.defineProperty(this, 'multiplierLabel', function() {
@@ -189,7 +183,6 @@ define([
         /**
          * Gets or sets the current shuttle ring angle.  This property is observable.
          * @type {Number}
-         * @default undefined
          */
         this.shuttleRingAngle = undefined;
         knockout.defineProperty(this, 'shuttleRingAngle', {
@@ -427,13 +420,13 @@ define([
      * @memberof AnimationViewModel
      *
      * @param positiveTicks The list of known positive clock multipliers to associate with the shuttle ring.
-     *
-     * @exception {DeveloperError} positiveTicks is required.
      */
     AnimationViewModel.prototype.setShuttleRingTicks = function(positiveTicks) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(positiveTicks)) {
             throw new DeveloperError('positiveTicks is required.');
         }
+        //>>includeEnd('debug');
 
         var i;
         var len;
@@ -561,9 +554,12 @@ define([
                 return this._dateFormatter;
             },
             set : function(dateFormatter) {
+                //>>includeStart('debug', pragmas.debug);
                 if (typeof dateFormatter !== 'function') {
                     throw new DeveloperError('dateFormatter must be a function');
                 }
+                //>>includeEnd('debug');
+
                 this._dateFormatter = dateFormatter;
             }
         },
@@ -582,9 +578,12 @@ define([
                 return this._timeFormatter;
             },
             set : function(timeFormatter) {
+                //>>includeStart('debug', pragmas.debug);
                 if (typeof timeFormatter !== 'function') {
                     throw new DeveloperError('timeFormatter must be a function');
                 }
+                //>>includeEnd('debug');
+
                 this._timeFormatter = timeFormatter;
             }
         }

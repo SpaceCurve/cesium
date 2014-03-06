@@ -4,28 +4,307 @@ Change Log
 Beta Releases
 -------------
 
+### b27 - 2014-04-01
+
+* Breaking changes:
+  *
+* `loadArrayBuffer`, `loadBlob`, `loadJson`, `loadText`, and `loadXML` now support loading data from data URIs.
+* Fixed extruded polygons rendered in the southern hemisphere. [#1490](https://github.com/AnalyticalGraphicsInc/cesium/issues/1490)
+* Fixed Primitive picking that have a closed appearance drawn on the surface. [#1333](https://github.com/AnalyticalGraphicsInc/cesium/issues/1333)
+
+### b26 - 2014-03-03
+
+* Breaking changes:
+  * Replaced getter/setter functions with properties:
+    * `Scene`
+      * `getCanvas` -> `canvas`
+      * `getContext` -> `context`
+      * `getPrimitives` -> `primitives`
+      * `getCamera` -> `camera`
+      * `getScreenSpaceCameraController`  -> `screenSpaceCameraController`
+      * `getFrameState` -> `frameState`
+      * `getAnimations` -> `animations`
+    * `CompositePrimitive`
+      * `getCentralBody`, `setCentralBody` -> `centralBody`
+      * `getLength` -> `length`
+    * `Ellipsoid`
+      * `getRadii` -> `radii`
+      * `getRadiiSquared` -> `radiiSquared`
+      * `getRadiiToTheFourth` -> `radiiToTheFourth`
+      * `getOneOverRadii` -> `oneOverRadii`
+      * `getOneOverRadiiSquared` -> `oneOverRadiiSquared`
+      * `getMinimumRadius` -> `minimumRadius`
+      * `getMaximumRadius` -> `maximumRadius`
+    * `CentralBody`
+      * `getEllipsoid` -> `ellipsoid`
+      * `getImageryLayers` -> `imageryLayers`
+    * `EllipsoidalOccluder`
+      * `getEllipsoid` -> `ellipsoid`
+      * `getCameraPosition`, `setCameraPosition` -> `cameraPosition`
+    * `EllipsoidTangentPlane`
+      * `getEllipsoid` -> `ellipsoid`
+      * `getOrigin` -> `origin`
+    * `GeographicProjection`
+      * `getEllipsoid` -> `ellipsoid`
+    * `WebMercatorProjection`
+      * `getEllipsoid` -> `ellipsoid`
+    * `SceneTransitioner`
+      * `getScene` -> `scene`
+      * `getEllipsoid` -> `ellipsoid`
+    * `ScreenSpaceCameraController`
+      * `getEllipsoid`, `setEllipsoid` -> `ellipsoid`
+    * `SkyAtmosphere`
+      * `getEllipsoid` -> `ellipsoid`
+    * `TilingScheme`, `GeographicTilingScheme`, `WebMercatorTilingSheme`
+      * `getEllipsoid` -> `ellipsoid`
+      * `getExtent` -> `extent`
+      * `getProjection` -> `projection`
+    * `ArcGisMapServerImageryProvider`, `BingMapsImageryProvider`, `GoogleEarthImageryProvider`, `GridImageryProvider`, `OpenStreetMapImageryProvider`, `SingleTileImageryProvider`, `TileCoordinatesImageryProvider`, `TileMapServiceImageryProvider`, `WebMapServiceImageryProvider`
+      * `getProxy` -> `proxy`
+      * `getTileWidth` -> `tileWidth`
+      * `getTileHeight` -> `tileHeight`
+      * `getMaximumLevel` -> `maximumLevel`
+      * `getMinimumLevel` -> `minimumLevel`
+      * `getTilingScheme` -> `tilingScheme`
+      * `getExtent` -> `extent`
+      * `getTileDiscardPolicy` -> `tileDiscardPolicy`
+      * `getErrorEvent` -> `errorEvent`
+      * `isReady` -> `ready`
+      * `getCredit` -> `credit`
+    * `ArcGisMapServerImageryProvider`, `BingMapsImageryProvider`, `GoogleEarthImageryProvider`, `OpenStreetMapImageryProvider`, `SingleTileImageryProvider`, `TileMapServiceImageryProvider`, `WebMapServiceImageryProvider`
+      * `getUrl` -> `url`
+    * `ArcGisMapServerImageryProvider`
+      * `isUsingPrecachedTiles` - > `usingPrecachedTiles`
+    * `BingMapsImageryProvider`
+      * `getKey` -> `key`
+      * `getMapStyle` -> `mapStyle`
+    * `GoogleEarthImageryProvider`
+      * `getPath` -> `path`
+      * `getChannel` -> `channel`
+      * `getVersion` -> `version`
+      * `getRequestType` -> `requestType`
+    * `WebMapServiceImageryProvider`
+      * `getLayers` -> `layers`
+    * `CesiumTerrainProvider`, `EllipsoidTerrainProvider`, `ArcGisImageServerTerrainProvider`, `VRTheWorldTerrainProvider`
+      * `getErrorEvent` -> `errorEvent`
+      * `getCredit` -> `credit`
+      * `getTilingScheme` -> `tilingScheme`
+      * `isReady` -> `ready`
+    * `TimeIntervalCollection`
+      * `getChangedEvent` -> `changedEvent`
+      * `getStart` -> `start`
+      * `getStop` -> `stop`
+      * `getLength` -> `length`
+      * `isEmpty` -> `empty`
+    * `DataSourceCollection`, `ImageryLayerCollection`, `LabelCollection`, `PolylineCollection`, `SensorVolumeCollection`
+      * `getLength` -> `length`
+    * `BillboardCollection`
+      * `getLength` -> `length`
+      * `getTextureAtlas`, `setTextureAtlas` -> `textureAtlas`
+      * `getDestroyTextureAtlas`, `setDestroyTextureAtlas` -> `destroyTextureAtlas`
+  * Removed `Scene.getUniformState()`.  Use `scene.context.getUniformState()`.
+  * Visualizers no longer create a `dynamicObject` property on the primitives they create.  Instead, they set the `id` property that is standard for all primitives.
+  * The `propertyChanged` on DynamicScene objects has been renamed to `definitionChanged`.  Also, the event is now raised in the case of an existing property being modified as well as having a new property assigned (previously only property assignment would raise the event).
+  * The `visualizerTypes` parameter to the `DataSouceDisplay` has been changed to a callback function that creates an array of visualizer instances.
+  * `DynamicDirectionsProperty` and `DynamicVertexPositionsProperty` were both removed, they have been superseded by `PropertyArray` and `PropertyPositionArray`, which make it easy for DataSource implementations to create time-dynamic arrays.
+  * `VisualizerCollection` has been removed.  It is superseded by `DataSourceDisplay`.
+  * `DynamicEllipsoidVisualizer`, `DynamicPolygonVisualizer`, and `DynamicPolylineVisualizer` have been removed.  They are superseded by `GeometryVisualizer` and corresponding `GeometryUpdater` implementations; `EllipsoidGeometryUpdater`, `PolygonGeometryUpdater`, `PolylineGeometryUpdater`.
+  * Modified `CameraFlightPath` functions to take place in the camera's current reference frame. The arguments to the function now need to be given in world coordinates and an optional reference frame can be given when the flight is completed.
+  * `PixelDatatype` properties are now JavaScript numbers, not `Enumeration` instances.
+  * `combine` now takes two objects instead of an array, and defaults to copying shallow references.  The `allowDuplicates` parameter has been removed.  In the event of duplicate properties, the first object's properties will be used.
+  * Removed `FeatureDetection.supportsCrossOriginImagery`.  This check was only useful for very old versions of WebKit.
+* Added `Model` for drawing 3D models using glTF.  See the [tutorial](http://cesiumjs.org/2014/03/03/Cesium-3D-Models-Tutorial/) and [Sandcastle example](http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=3D%20Models.html&label=Showcases).
+* DynamicScene now makes use of [Geometry and Appearances](http://cesiumjs.org/2013/11/04/Geometry-and-Appearances/), which provides a tremendous improvements to DataSource visualization (CZML, GeoJSON, etc..).  Extruded geometries are now supported and in many use cases performance is an order of magnitude faster.
+* Added new `SelectionIndicator` and `InfoBox` widgets to `Viewer`, activated by `viewerDynamicObjectMixin`.
+* `CesiumTerrainProvider` now supports mesh-based terrain like the tiles created by [STK Terrain Server](https://groups.google.com/forum/#!topic/cesium-dev/cP01iP7YOCU).
+* Fixed rendering artifact on translucent objects when zooming in or out.
+* Added `CesiumInspector` widget for graphics debugging.  In Cesium Viewer, it is enabled by using the query parameter `inspector=true`.  Also see the [Sandcastle example](http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Cesium%20Inspector.html&label=Showcases).
+* Improved compatibility with Internet Explorer 11.
+* `DynamicEllipse`, `DynamicPolygon`, and `DynamicEllipsoid` now have properties matching their geometry counterpart, i.e. `EllipseGeometry`, `EllipseOutlineGeometry`, etc. These properties are also available in CZML.
+* Added a `definitionChanged` event to the `Property` interface as well as most `DynamicScene` objects.  This makes it easy for a client to observe when new data is loaded into a property or object.
+* Added an `isConstant` property to the `Property` interface.  Constant properties do not change in regards to simulation time, i.e. `Property.getValue` will always return the same result for all times.
+* `ConstantProperty` is now mutable; it's value can be updated via `ConstantProperty.setValue`.
+* Improved the quality of imagery near the poles when the imagery source uses a `GeographicTilingScheme`.
+* `OpenStreetMapImageryProvider` now supports imagery with a minimum level.
+* `BingMapsImageryProvider` now uses HTTPS by default for metadata and tiles when the document is loaded over HTTPS.
+* Added the ability for imagery providers to specify view-dependent attribution to be display in the `CreditDisplay`.
+* View-dependent imagery source attribution is now added to the `CreditDisplay` by the `BingMapsImageryProvider`.
+* Fixed viewing an extent. [#1431](https://github.com/AnalyticalGraphicsInc/cesium/issues/1431)
+* Fixed camera tilt in ICRF. [#544](https://github.com/AnalyticalGraphicsInc/cesium/issues/544)
+* Fixed developer error when zooming in 2D. If the zoom would create an invalid frustum, nothing is done. [#1432](https://github.com/AnalyticalGraphicsInc/cesium/issues/1432)
+* Fixed `WallGeometry` bug that failed by removing positions that were less close together by less than 6 decimal places. [#1483](https://github.com/AnalyticalGraphicsInc/cesium/pull/1483)
+* Fixed `EllipsoidGeometry` texture coordinates. [#1454](https://github.com/AnalyticalGraphicsInc/cesium/issues/1454)
+* Added a loop property to `Polyline`s to join the first and last point. [#960](https://github.com/AnalyticalGraphicsInc/cesium/issues/960)
+* Use `performance.now()` instead of `Date.now()`, when available, to limit time spent loading terrain and imagery tiles.  This results in more consistent frame rates while loading tiles on some systems.
+* `RequestErrorEvent` now includes the headers that were returned with the error response.
+* Added `AssociativeArray`, which is a helper class for maintaining a hash of objects that also needs to be iterated often.
+* Added `TimeIntervalCollection.getChangedEvent` which returns an event that will be raised whenever intervals are updated.
+* Added a second parameter to `Material.fromType` to override default uniforms. [#1522](https://github.com/AnalyticalGraphicsInc/cesium/pull/1522)
+* Added `Intersections2D` class containing operations on 2D triangles.
+* Added `czm_inverseViewProjection` and `czm_inverseModelViewProjection` automatic GLSL uniform.
+
+### b25 - 2014-02-03
+
+* Breaking changes:
+  * The `Viewer` constructor argument `options.fullscreenElement` now matches the `FullscreenButton` default of `document.body`, it was previously the `Viewer` container itself.
+  * Removed `Viewer.objectTracked` event; `Viewer.trackedObject` is now an ES5 Knockout observable that can be subscribed to directly.
+  * Replaced `PerformanceDisplay` with `Scene.debugShowFramesPerSecond`.
+  * `Asphalt`, `Blob`, `Brick`, `Cement`, `Erosion`, `Facet`, `Grass`, `TieDye`, and `Wood` materials were moved to the [Materials Pack Plugin](https://github.com/AnalyticalGraphicsInc/cesium-materials-pack).
+  * Renamed `GeometryPipeline.createAttributeIndices` to `GeometryPipeline.createAttributeLocations`.
+  * Renamed `attributeIndices` property to `attributeLocations` when calling `Context.createVertexArrayFromGeometry`.
+  * `PerformanceDisplay` requires a DOM element as a parameter.
+* Fixed globe rendering in the current Canary version of Google Chrome.
+* `Viewer` now monitors the clock settings of the first added `DataSource` for changes, and also now has a constructor option `automaticallyTrackFirstDataSourceClock` which will turn off this behavior.
+* The `DynamicObjectCollection` created by `CzmlDataSource` now sends a single `collectionChanged` event after CZML is loaded; previously it was sending an event every time an object was created or removed during the load process.
+* Added `ScreenSpaceCameraController.enableInputs` to fix issue with inputs not being restored after overlapping camera flights.
+* Fixed picking in 2D with rotated map. [#1337](https://github.com/AnalyticalGraphicsInc/cesium/issues/1337)
+* `TileMapServiceImageryProvider` can now handle casing differences in tilemapresource.xml.
+* `OpenStreetMapImageryProvider` now supports imagery with a minimum level.
+* Added `Quaternion.fastSlerp` and `Quaternion.fastSquad`.
+* Upgraded Tween.js to version r12.
+
+### b24 - 2014-01-06
+
+* Breaking changes:
+  * Added `allowTextureFilterAnisotropic` (default: `true`) and `failIfMajorPerformanceCaveat` (default: `true`) properties to the `contextOptions` property passed to `Viewer`, `CesiumWidget`, and `Scene` constructors and moved the existing properties to a new `webgl` sub-property.  For example, code that looked like:
+
+           var viewer = new Viewer('cesiumContainer', {
+               contextOptions : {
+                 alpha : true
+               }
+           });
+
+    should now look like:
+
+           var viewer = new Viewer('cesiumContainer', {
+               contextOptions : {
+                 webgl : {
+                   alpha : true
+                 }
+               }
+           });
+  * The read-only `Cartesian3` objects must now be cloned to camera properties instead of assigned. For example, code that looked like:
+
+          camera.up = Cartesian3.UNIT_Z;
+
+    should now look like:
+
+          Cartesian3.clone(Cartesian3.UNIT_Z, camera.up);
+
+  * The CSS files for individual widgets, e.g. `BaseLayerPicker.css`, no longer import other CSS files.  Most applications should import `widgets.css` (and optionally `lighter.css`).
+  * `SvgPath` has been replaced by a Knockout binding: `cesiumSvgPath`.
+  * `DynamicObject.availability` is now a `TimeIntervalCollection` instead of a `TimeInterval`.
+  * Removed prototype version of `BoundingSphere.transform`.
+  * `Matrix4.multiplyByPoint` now returns a `Cartesian3` instead of a `Cartesian4`.
+* The minified, combined `Cesium.js` file now omits certain `DeveloperError` checks, to increase performance and reduce file size.  When developing your application, we recommend using the unminified version locally for early error detection, then deploying the minified version to production.
+* Fixed disabling `CentralBody.enableLighting`.
+* Fixed `Geocoder` flights when following an object.
+* The `Viewer` widget now clears `Geocoder` input when the user clicks the home button.
+* The `Geocoder` input type has been changed to `search`, which improves usability (particularly on mobile devices).  There were also some other minor styling improvements.
+* Added `CentralBody.maximumScreenSpaceError`.
+* Added `translateEventTypes`, `zoomEventTypes`, `rotateEventTypes`, `tiltEventTypes`, and `lookEventTypes` properties to `ScreenSpaceCameraController` to change the default mouse inputs.
+* Added `Billboard.setPixelOffsetScaleByDistance`, `Label.setPixelOffsetScaleByDistance`, `DynamicBillboard.pixelOffsetScaleByDistance`, and `DynamicLabel.pixelOffsetScaleByDistance` to control minimum/maximum pixelOffset scaling based on camera distance.
+* Added `BoundingSphere.transformsWithoutScale`.
+* Added `fromArray` function to `Matrix2`, `Matrix3` and `Matrix4`.
+* Added `Matrix4.multiplyTransformation`, `Matrix4.multiplyByPointAsVector`.
+
+### b23 - 2013-12-02
+
+* Breaking changes:
+  * Changed the `CatmulRomSpline` and `HermiteSpline` constructors from taking an array of structures to a structure of arrays. For example, code that looked like:
+
+           var controlPoints = [
+               { point: new Cartesian3(1235398.0, -4810983.0, 4146266.0), time: 0.0},
+               { point: new Cartesian3(1372574.0, -5345182.0, 4606657.0), time: 1.5},
+               { point: new Cartesian3(-757983.0, -5542796.0, 4514323.0), time: 3.0},
+               { point: new Cartesian3(-2821260.0, -5248423.0, 4021290.0), time: 4.5},
+               { point: new Cartesian3(-2539788.0, -4724797.0, 3620093.0), time: 6.0}
+           ];
+           var spline = new HermiteSpline(controlPoints);
+
+    should now look like:
+
+           var spline = new HermiteSpline({
+               times : [ 0.0, 1.5, 3.0, 4.5, 6.0 ],
+               points : [
+                   new Cartesian3(1235398.0, -4810983.0, 4146266.0),
+                   new Cartesian3(1372574.0, -5345182.0, 4606657.0),
+                   new Cartesian3(-757983.0, -5542796.0, 4514323.0),
+                   new Cartesian3(-2821260.0, -5248423.0, 4021290.0),
+                   new Cartesian3(-2539788.0, -4724797.0, 3620093.0)
+               ]
+           });
+  * `loadWithXhr` now takes an options object, and allows specifying HTTP method and data to send with the request.
+  * Renamed `SceneTransitioner.onTransitionStart` to `SceneTransitioner.transitionStart`.
+  * Renamed `SceneTransitioner.onTransitionComplete` to `SceneTransitioner.transitionComplete`.
+  * Renamed `CesiumWidget.onRenderLoopError` to `CesiumWidget.renderLoopError`.
+  * Renamed `SceneModePickerViewModel.onTransitionStart` to `SceneModePickerViewModel.transitionStart`.
+  * Renamed `Viewer.onRenderLoopError` to `Viewer.renderLoopError`.
+  * Renamed `Viewer.onDropError` to `Viewer.dropError`.
+  * Renamed `CesiumViewer.onDropError` to `CesiumViewer.dropError`.
+  * Renamed `viewerDragDropMixin.onDropError` to `viewerDragDropMixin.dropError`.
+  * Renamed `viewerDynamicObjectMixin.onObjectTracked` to `viewerDynamicObjectMixin.objectTracked`.
+  * `PixelFormat`, `PrimitiveType`, `IndexDatatype`, `TextureWrap`, `TextureMinificationFilter`, and `TextureMagnificationFilter` properties are now JavaScript numbers, not `Enumeration` instances.
+  * Replaced `sizeInBytes` properties on `IndexDatatype` with `IndexDatatype.getSizeInBytes`.
+* Added `perPositionHeight` option to `PolygonGeometry` and `PolygonOutlineGeometry`.
+* Added `QuaternionSpline` and `LinearSpline`.
+* Added `Quaternion.log`, `Quaternion.exp`, `Quaternion.innerQuadrangle`, and `Quaternion.squad`.
+* Added `Matrix3.inverse` and `Matrix3.determinant`.
+* Added `ObjectOrientedBoundingBox`.
+* Added `Ellipsoid.transformPositionFromScaledSpace`.
+* Added `Math.nextPowerOfTwo`.
+* Renamed our main website from [cesium.agi.com](http://cesium.agi.com/) to [cesiumjs.org](http://cesiumjs.org/).
+
 ### b22 - 2013-11-01
 
 * Breaking changes:
-   * The following prototype functions were removed:
-      * From `Matrix2`, `Matrix3`, and `Matrix4`: `toArray`, `getColumn`, `setColumn`, `getRow`, `setRow`, `multiply`, `multiplyByVector`, `multiplyByScalar`, `negate`, and `transpose`
-      * From `Matrix4`: `getTranslation`, `getRotation`, `inverse`, `inverseTransformation`, `multiplyByTranslation`, `multiplyByUniformScale`, `multiplyByPoint`
-
-      Code that previously looked like `matrix.toArray();` should now look like `Matrix3.toArray(matrix);`.
-   * Renamed `DynamicBillboard.nearFarScalar` to `DynamicBillboard.scaleByDistance`.
-   * The `SkyBox` constructor now takes an `options` argument with a `sources` property, instead of directly taking `sources`.
-   * Replaced `SkyBox.getSources` with `SkyBox.sources`.
-   * Replaced `DynamicPolyline` `color`, `outlineColor`, and `outlineWidth` properties with a single `material` property.
-   * Reversed the rotation direction of `Matrix3.fromQuaternion` to be consistent with graphics conventions. Mirrored change in `Quaternion.fromRotationMatrix`.
-   * All data sources must now implement `DataSource.getName`, which returns a user-readable name for the data source.
-   * CZML `document` objects are no longer added to the `DynamicObjectCollection` created by `CzmlDataSource`.  Use the `CzmlDataSource` interface to access the data instead.
-   * `TimeInterval.equals`, and `TimeInterval.equalsEpsilon` now compare interval data as well.
-   * `Property` implementations are now required to implement a prototype `equals` function.
-   * `ConstantProperty` and `TimeIntervalCollectionProperty` no longer take a `clone` function and instead require objects to implement prototype `clone` and `equals` functions.
-* Added `Billboard.setTranslucencyByDistance`, `Label.setTranslucencyByDistance`, `DynamicBillboard.translucencyByDistance`, and `DynamicLabel.translucencyByDistance` to control minimum/maximum translucency based on camera distance.
+  * Reversed the rotation direction of `Matrix3.fromQuaternion` to be consistent with graphics conventions. Mirrored change in `Quaternion.fromRotationMatrix`.
+  * The following prototype functions were removed:
+    * From `Matrix2`, `Matrix3`, and `Matrix4`: `toArray`, `getColumn`, `setColumn`, `getRow`, `setRow`, `multiply`, `multiplyByVector`, `multiplyByScalar`, `negate`, and `transpose`.
+    * From `Matrix4`: `getTranslation`, `getRotation`, `inverse`, `inverseTransformation`, `multiplyByTranslation`, `multiplyByUniformScale`, `multiplyByPoint`. For example, code that previously looked like `matrix.toArray();` should now look like `Matrix3.toArray(matrix);`.
+  * Replaced `DynamicPolyline` `color`, `outlineColor`, and `outlineWidth` properties with a single `material` property.
+  * Renamed `DynamicBillboard.nearFarScalar` to `DynamicBillboard.scaleByDistance`.
+  * All data sources must now implement `DataSource.getName`, which returns a user-readable name for the data source.
+  * CZML `document` objects are no longer added to the `DynamicObjectCollection` created by `CzmlDataSource`.  Use the `CzmlDataSource` interface to access the data instead.
+  * `TimeInterval.equals`, and `TimeInterval.equalsEpsilon` now compare interval data as well.
+  * All SVG files were deleted from `Widgets/Images` and replaced by a new `SvgPath` class.
+  * The toolbar widgets (Home, SceneMode, BaseLayerPicker) and the fullscreen button now depend on `CesiumWidget.css` for global Cesium button styles.
+  * The toolbar widgets expect their `container` to be the toolbar itself now, no need for separate containers for each widget on the bar.
+  * `Property` implementations are now required to implement a prototype `equals` function.
+  * `ConstantProperty` and `TimeIntervalCollectionProperty` no longer take a `clone` function and instead require objects to implement prototype `clone` and `equals` functions.
+  * The `SkyBox` constructor now takes an `options` argument with a `sources` property, instead of directly taking `sources`.
+  * Replaced `SkyBox.getSources` with `SkyBox.sources`.
+  * The `bearing` property of `DynamicEllipse` is now called `rotation`.
+  * CZML `ellipse.bearing` property is now `ellipse.rotation`.
+* Added a `Geocoder` widget that allows users to enter an address or the name of a landmark and zoom to that location.  It is enabled by default in applications that use the `Viewer` widget.
+* Added `GoogleEarthImageryProvider`.
 * Added `Moon` for drawing the moon, and `IauOrientationAxes` for computing the Moon's orientation.
+* Added `Material.translucent` property. Set this property or `Appearance.translucent` for correct rendering order. Translucent geometries are rendered after opaque geometries.
+* Added `enableLighting`, `lightingFadeOutDistance`, and `lightingFadeInDistance` properties to `CentralBody` to configure lighting.
+* Added `Billboard.setTranslucencyByDistance`, `Label.setTranslucencyByDistance`, `DynamicBillboard.translucencyByDistance`, and `DynamicLabel.translucencyByDistance` to control minimum/maximum translucency based on camera distance.
+* Added `PolylineVolumeGeometry` and `PolylineVolumeGeometryOutline`.
+* Added `Shapes.compute2DCircle`.
 * Added `Appearances` tab to Sandcastle with an example for each geometry appearance.
+* Added `Scene.drillPick` to return list of objects each containing 1 primitive at a screen space position.
+* Added `PolylineOutlineMaterialProperty` for use with `DynamicPolyline.material`.
+* Added the ability to use `Array` and `JulianDate` objects as custom CZML properties.
+* Added `DynamicObject.name` and corresponding CZML support.  This is a non-unique, user-readable name for the object.
+* Added `DynamicObject.parent` and corresponding CZML support.  This allows for `DataSource` objects to present data hierarchically.
+* Added `DynamicPoint.scaleByDistance` to control minimum/maximum point size based on distance from the camera.
+* The toolbar widgets (Home, SceneMode, BaseLayerPicker) and the fullscreen button can now be styled directly with user-supplied CSS.
+* Added `skyBox` to the `CesiumWidget` and `Viewer` constructors for changing the default stars.
+* Added `Matrix4.fromTranslationQuaternionRotationScale` and `Matrix4.multiplyByScale`.
+* Added `Matrix3.getEigenDecomposition`.
+* Added utility function `getFilenameFromUri`, which given a URI with or without query parameters, returns the last segment of the URL.
+* Added prototype versions of `equals` and `equalsEpsilon` method back to `Cartesian2`, `Cartesian3`, `Cartesian4`, and `Quaternion`.
+* Added prototype equals function to `NearFarScalar`, and `TimeIntervalCollection`.
+* Added `FrameState.events`.
+* Added `Primitive.allowPicking` to save memory when picking is not needed.
+* Added `debugShowBoundingVolume`, for debugging primitive rendering, to `Primitive`, `Polygon`, `ExtentPrimitive`, `EllipsoidPrimitive`, `BillboardCollection`, `LabelCollection`, and `PolylineCollection`.
+* Added `DebugModelMatrixPrimitive` for debugging primitive's `modelMatrix`.
 * Added `options` argument to the `EllipsoidPrimitive` constructor.
+* Upgraded Knockout from version 2.3.0 to 3.0.0.
+* Upgraded RequireJS to version 2.1.9, and Almond to 0.2.6.
 * Added a user-defined `id` to all primitives for use with picking.  For example:
 
             primitives.add(new Polygon({
@@ -39,22 +318,6 @@ Beta Releases
             if (defined(p) && defined(p.id)) {
                // Use properties and functions in p.id
             }
-* Added `Scene.drillPick` to return list of objects each containing 1 primitive at a screen space position.
-* Added `PolylineVolumeGeometry` and `PolylineVolumeGeometryOutline`.
-* Added `Shapes.compute2DCircle`.
-* Added `Matrix3.getEigenDecomposition`.
-* Added `PolylineOutlineMaterialProperty` for use with `DynamicPolyline.material`.
-* Added `skyBox` to the `CesiumWidget` and `Viewer` constructors for changing the default stars.
-* Added utility function `getFilenameFromUri`, which given a URI with or without query parameters, returns the last segment of the URL.
-* Upgraded RequireJS to version 2.1.8, and Almond to 0.2.6.
-* Added the ability to use `Array` and `JulianDate` objects as custom CZML properties.
-* Added `DynamicObject.name` and corresponding CZML support.  This is a non-unique, user-readable name for the object.
-* Added `DynamicObject.parent` and corresponding CZML support.  This allows for `DataSource` objects to present data hierarchically.
-* Added `DynamicPoint.scaleByDistance` to control minimum/maximum point size based on distance from the camera.
-* Added prototype versions of `equals` and `equalsEpsilon` method back to `Cartesian2`, `Cartesian3`, `Cartesian4`, and `Quaternion`.
-* Added prototype equals function to `NearFarScalar`, and `TimeIntervalCollection`.
-* Added `Matrix4.fromTranslationQuaternionRotationScale` and `Matrix4.multiplyByScale`.
-* Added `FrameState.events`.
 
 ### b21 - 2013-10-01
 
@@ -86,8 +349,8 @@ Beta Releases
 
       Code that previously looked like `quaternion.magnitude();` should now look like `Quaternion.magnitude(quaternion);`.
    * `DynamicObjectCollection` and `CompositeDynamicObjectCollection` have been largely re-written, see the documentation for complete details.  Highlights include:
-      * `getObject` has been renamed `getById`
-      * `removeObject` has been renamed `removeById`
+      * `getObject` has been renamed `getById`.
+      * `removeObject` has been renamed `removeById`.
       * `collectionChanged` event added for notification of objects being added or removed.
    * `DynamicScene` graphics object (`DynamicBillboard`, etc...) have had their static `mergeProperties` and `clean` functions removed.
    * `UniformState.update` now takes a context as its first parameter.
@@ -133,7 +396,6 @@ _This releases fixes 2D and other issues with Chrome 29.0.1547.57 ([#1002](https
 
 * Breaking changes:
     * The `CameraFlightPath` functions `createAnimation`, `createAnimationCartographic`, and `createAnimationExtent` now take `scene` as their first parameter instead of `frameState`.
-    * `Source/Widgets/Viewer/lighter.css` was deleted, use `Source/Widgets/lighter.css` instead.
     * Completely refactored the `DynamicScene` property system to vastly improve the API. See [#1080](https://github.com/AnalyticalGraphicsInc/cesium/pull/1080) for complete details.
        * Removed `CzmlBoolean`, `CzmlCartesian2`, `CzmlCartesian3`, `CzmlColor`, `CzmlDefaults`, `CzmlDirection`, `CzmlHorizontalOrigin`, `CzmlImage`, `CzmlLabelStyle`, `CzmlNumber`, `CzmlPosition`, `CzmlString`, `CzmlUnitCartesian3`, `CzmlUnitQuaternion`, `CzmlUnitSpherical`, and `CzmlVerticalOrigin` since they are no longer needed.
        * Removed `DynamicProperty`, `DynamicMaterialProperty`, `DynamicDirectionsProperty`, and `DynamicVertexPositionsProperty`; replacing them with an all new system of properties.
@@ -258,7 +520,7 @@ _This releases fixes 2D and other issues with Chrome 29.0.1547.57 ([#1002](https
    * Removed `Assets/Textures/NE2_LR_LC_SR_W_DR_2048.jpg`.  If you were previously using this image with `SingleTileImageryProvider`, consider instead using `TileMapServiceImageryProvider` with a URL of `Assets/Textures/NaturalEarthII`.
    * The `Client CZML` SandCastle demo has been removed, largely because it is redundant with the Simple CZML demo.
    * The `Two Viewer Widgets` SandCastle demo has been removed. We will add back a multi-scene example when we have a good architecture for it in place.
-   * Changed static `clone` functions in all objects such that if the object being cloned is undefined, the function will return undefined instead of throwing an exception
+   * Changed static `clone` functions in all objects such that if the object being cloned is undefined, the function will return undefined instead of throwing an exception.
 * Fix resizing issues in `CesiumWidget` ([#608](https://github.com/AnalyticalGraphicsInc/cesium/issues/608), [#834](https://github.com/AnalyticalGraphicsInc/cesium/issues/834)).
 * Added initial support for [GeoJSON](http://www.geojson.org/) and [TopoJSON](https://github.com/mbostock/topojson). ([#890](https://github.com/AnalyticalGraphicsInc/cesium/pull/890), [#906](https://github.com/AnalyticalGraphicsInc/cesium/pull/906))
 * Added rotation, aligned axis, width, and height properties to `Billboard`s.
@@ -303,7 +565,7 @@ _This releases fixes 2D and other issues with Chrome 29.0.1547.57 ([#1002](https
 * Improved appearance of the Polyline arrow material.
 * Fixed polyline clipping artifact. [#728](https://github.com/AnalyticalGraphicsInc/cesium/issues/728).
 * Fixed polygon crossing International Date Line for 2D and Columbus view. [#99](https://github.com/AnalyticalGraphicsInc/cesium/issues/99).
-* Fixed issue for camera flights when `frameState.mode === SceneMode.MORPHING`
+* Fixed issue for camera flights when `frameState.mode === SceneMode.MORPHING`.
 * Fixed ISO8601 date parsing when UTC offset is specified in the extended format, such as `2008-11-10T14:00:00+02:30`.
 
 ### b16 - 2013-05-01
@@ -356,7 +618,7 @@ _This releases fixes 2D and other issues with Chrome 29.0.1547.57 ([#1002](https
 
 * Breaking changes:
    * `Billboard.computeScreenSpacePosition` now takes `Context` and `FrameState` arguments instead of a `UniformState` argument.
-   * Removed `clampToPixel` property from `BillboardCollection` and `LabelCollection`.  This options is no longer be needed due to overall LabelCollection visualization improvements.
+   * Removed `clampToPixel` property from `BillboardCollection` and `LabelCollection`.  This option is no longer needed due to overall LabelCollection visualization improvements.
    * Removed `Widgets/Dojo/CesiumWidget` and replaced it with `Widgets/CesiumWidget`, which has no Dojo dependancies.
    * `destroyObject` no longer deletes properties from the object being destroyed.
    * `darker.css` files have been deleted and the `darker` theme is now the default style for widgets.  The original theme is now known as `lighter` and is in corresponding `lighter.css` files.
@@ -380,7 +642,7 @@ _This releases fixes 2D and other issues with Chrome 29.0.1547.57 ([#1002](https
    * Major refactoring of both animation and widgets systems as we move to an MVVM-like architecture for user interfaces.
       * New `Animation` widget for controlling playback.
       * AnimationController.js has been deleted.
-      * `ClockStep.SYSTEM_CLOCK_DEPENDENT` was renamed to `ClockStep.SYSTEM_CLOCK_MULTIPLIER`
+      * `ClockStep.SYSTEM_CLOCK_DEPENDENT` was renamed to `ClockStep.SYSTEM_CLOCK_MULTIPLIER`.
       * `ClockStep.SYSTEM_CLOCK` was added to have the clock always match the system time.
       * `ClockRange.LOOP` was renamed to `ClockRange.LOOP_STOP` and now only loops in the forward direction.
       * `Clock.reverseTick` was removed, simply negate `Clock.multiplier` and pass it to `Clock.tick`.
@@ -390,11 +652,11 @@ _This releases fixes 2D and other issues with Chrome 29.0.1547.57 ([#1002](https
    * Removed `CesiumViewerWidget.fullScreenElement`, instead use the `CesiumViewerWidget.fullscreen.viewModel.fullScreenElement` observable property.
    * `IntersectionTests.rayPlane` now takes the new `Plane` type instead of separate `planeNormal` and `planeD` arguments.
    * Renamed `ImageryProviderError` to `TileProviderError`.
-* Added support for global terrain visualization via `CesiumTerrainProvider`, `ArcGisImageServerTerrainProvider`, and `VRTheWorldTerrainProvider`.  See the [Terrain Tutorial](http://cesium.agi.com/2013/02/15/Cesium-Terrain-Tutorial/) for more information.
+* Added support for global terrain visualization via `CesiumTerrainProvider`, `ArcGisImageServerTerrainProvider`, and `VRTheWorldTerrainProvider`.  See the [Terrain Tutorial](http://cesiumjs.org/2013/02/15/Cesium-Terrain-Tutorial/) for more information.
 * Added `FullscreenWidget` which is a simple, single-button widget that toggles fullscreen mode of the specified element.
 * Added interactive extent drawing to the `Picking` Sandcastle example.
 * Added `HeightmapTessellator` to create a mesh from a heightmap.
-* Added `JulianDate.equals`
+* Added `JulianDate.equals`.
 * Added `Plane` for representing the equation of a plane.
 * Added a line segment-plane intersection test to `IntersectionTests`.
 * Improved the lighting used in 2D and Columbus View modes.  In general, the surface lighting in these modes should look just like it does in 3D.

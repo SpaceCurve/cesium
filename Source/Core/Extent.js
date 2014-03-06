@@ -76,7 +76,7 @@ define([
      * @returns {Extent} The modified result parameter or a new Extent instance if none was provided.
      *
      * @example
-     * var extent = Extent.fromDegrees(0.0, 20.0, 10.0, 30.0);
+     * var extent = Cesium.Extent.fromDegrees(0.0, 20.0, 10.0, 30.0);
      */
     Extent.fromDegrees = function(west, south, east, north, result) {
         west = CesiumMath.toRadians(defaultValue(west, 0.0));
@@ -105,9 +105,11 @@ define([
      * @returns {Extent} The modified result parameter or a new Extent instance if none was provided.
      */
     Extent.fromCartographicArray = function(cartographics, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(cartographics)) {
             throw new DeveloperError('cartographics is required.');
         }
+        //>>includeEnd('debug');
 
         var minLon = Number.MAX_VALUE;
         var maxLon = -Number.MAX_VALUE;
@@ -212,13 +214,13 @@ define([
      * @param {Extent} [other] The Extent to compare.
      * @param {Number} epsilon The epsilon to use for equality testing.
      * @returns {Boolean} <code>true</code> if the Extents are within the provided epsilon, <code>false</code> otherwise.
-     *
-     * @exception {DeveloperError} epsilon is required and must be a number.
      */
     Extent.prototype.equalsEpsilon = function(other, epsilon) {
+        //>>includeStart('debug', pragmas.debug);
         if (typeof epsilon !== 'number') {
             throw new DeveloperError('epsilon is required and must be a number.');
         }
+        //>>includeEnd('debug');
 
         return defined(other) &&
                (Math.abs(this.west - other.west) <= epsilon) &&
@@ -230,16 +232,13 @@ define([
     /**
      * Checks this Extent's properties and throws if they are not in valid ranges.
      *
-     * @exception {DeveloperError} <code>north</code> is required to be a number.
-     * @exception {DeveloperError} <code>south</code> is required to be a number.
-     * @exception {DeveloperError} <code>east</code> is required to be a number.
-     * @exception {DeveloperError} <code>west</code> is required to be a number.
      * @exception {DeveloperError} <code>north</code> must be in the interval [<code>-Pi/2</code>, <code>Pi/2</code>].
      * @exception {DeveloperError} <code>south</code> must be in the interval [<code>-Pi/2</code>, <code>Pi/2</code>].
      * @exception {DeveloperError} <code>east</code> must be in the interval [<code>-Pi</code>, <code>Pi</code>].
      * @exception {DeveloperError} <code>west</code> must be in the interval [<code>-Pi</code>, <code>Pi</code>].
      */
     Extent.prototype.validate = function() {
+        //>>includeStart('debug', pragmas.debug);
         var north = this.north;
         if (typeof north !== 'number') {
             throw new DeveloperError('north is required to be a number.');
@@ -275,6 +274,7 @@ define([
         if (east < -Math.PI || east > Math.PI) {
             throw new DeveloperError('east must be in the interval [-Pi, Pi].');
         }
+        //>>includeEnd('debug');
     };
 
     /**
@@ -369,13 +369,14 @@ define([
      * @param otherExtent The extent to intersect with this extent.
      * @param {Extent} [result] The object onto which to store the result.
      * @returns {Extent} The modified result parameter or a new Extent instance if none was provided.
-     *
-     * @exception {DeveloperError} otherExtent is required.
      */
     Extent.prototype.intersectWith = function(otherExtent, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(otherExtent)) {
             throw new DeveloperError('otherExtent is required.');
         }
+        //>>includeEnd('debug');
+
         var west = Math.max(this.west, otherExtent.west);
         var south = Math.max(this.south, otherExtent.south);
         var east = Math.min(this.east, otherExtent.east);
@@ -396,13 +397,14 @@ define([
      *
      * @param {Cartographic} cartographic The cartographic to test.
      * @returns {Boolean} true if the provided cartographic is inside the extent, false otherwise.
-     *
-     * @exception {DeveloperError} cartographic is required.
      */
     Extent.prototype.contains = function(cartographic) {
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(cartographic)) {
             throw new DeveloperError('cartographic is required.');
         }
+        //>>includeEnd('debug');
+
         return cartographic.longitude >= this.west &&
                cartographic.longitude <= this.east &&
                cartographic.latitude >= this.south &&

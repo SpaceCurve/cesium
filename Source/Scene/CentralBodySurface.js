@@ -1,22 +1,23 @@
 /*global define*/
 define([
-        '../Core/defaultValue',
-        '../Core/defined',
-        '../Core/destroyObject',
         '../Core/BoundingSphere',
         '../Core/Cartesian2',
         '../Core/Cartesian3',
         '../Core/Cartesian4',
-        '../Core/FeatureDetection',
+        '../Core/Cartographic',
+        '../Core/defined',
+        '../Core/destroyObject',
         '../Core/DeveloperError',
-        '../Core/Ellipsoid',
         '../Core/EllipsoidalOccluder',
+        '../Core/FeatureDetection',
+        '../Core/getTimestamp',
         '../Core/Intersect',
         '../Core/Matrix4',
         '../Core/PrimitiveType',
         '../Core/Queue',
         '../Core/WebMercatorProjection',
         '../Renderer/DrawCommand',
+        '../Renderer/Pass',
         './ImageryLayer',
         './ImageryState',
         './SceneMode',
@@ -25,23 +26,24 @@ define([
         './TileState',
         '../ThirdParty/when'
     ], function(
-        defaultValue,
-        defined,
-        destroyObject,
         BoundingSphere,
         Cartesian2,
         Cartesian3,
         Cartesian4,
-        FeatureDetection,
+        Cartographic,
+        defined,
+        destroyObject,
         DeveloperError,
-        Ellipsoid,
         EllipsoidalOccluder,
+        FeatureDetection,
+        getTimestamp,
         Intersect,
         Matrix4,
         PrimitiveType,
         Queue,
         WebMercatorProjection,
         DrawCommand,
+        Pass,
         ImageryLayer,
         ImageryState,
         SceneMode,
@@ -60,17 +62,18 @@ define([
      * @constructor
      * @private
      */
-    var CentralBodySurface = function(description) {
-        if (!defined(description.terrainProvider)) {
-            throw new DeveloperError('description.terrainProvider is required.');
+    var CentralBodySurface = function(options) {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(options.terrainProvider)) {
+            throw new DeveloperError('options.terrainProvider is required.');
         }
-        if (!defined(description.imageryLayerCollection)) {
-            throw new DeveloperError('description.imageryLayerCollection is required.');
+        if (!defined(options.imageryLayerCollection)) {
+            throw new DeveloperError('options.imageryLayerCollection is required.');
         }
+        //>>includeEnd('debug');
 
-        this._terrainProvider = description.terrainProvider;
-        this._imageryLayerCollection = description.imageryLayerCollection;
-        this._maxScreenSpaceError = defaultValue(description.maxScreenSpaceError, 2);
+        this._terrainProvider = options.terrainProvider;
+        this._imageryLayerCollection = options.imageryLayerCollection;
 
         this._imageryLayerCollection.layerAdded.addEventListener(CentralBodySurface.prototype._onLayerAdded, this);
         this._imageryLayerCollection.layerRemoved.addEventListener(CentralBodySurface.prototype._onLayerRemoved, this);
@@ -79,7 +82,7 @@ define([
 
         this._layerOrderChanged = false;
 
-        var terrainTilingScheme = this._terrainProvider.getTilingScheme();
+        var terrainTilingScheme = this._terrainProvider.tilingScheme;
         this._levelZeroTiles = undefined;
 
         this._tilesToRenderByTextureCount = [];
@@ -88,6 +91,7 @@ define([
         this._tileTraversalQueue = new Queue();
         this._tileLoadQueue = [];
         this._tileReplacementQueue = new TileReplacementQueue();
+        this._maximumScreenSpaceError = 2;
         this._tileCacheSize = 100;
 
         // The number of milliseconds each frame to allow for processing the tile load queue.
@@ -95,7 +99,7 @@ define([
         // even if this value is 0.
         this._loadQueueTimeSlice = 5;
 
-        var ellipsoid = terrainTilingScheme.getEllipsoid();
+        var ellipsoid = terrainTilingScheme.ellipsoid;
         this._ellipsoidalOccluder = new EllipsoidalOccluder(ellipsoid, Cartesian3.ZERO);
 
         this._debug = {
@@ -121,11 +125,11 @@ define([
         };
     };
 
-    CentralBodySurface.prototype.update = function(context, frameState, colorCommandList, centralBodyUniformMap, shaderSet, renderState, projection) {
+    CentralBodySurface.prototype.update = function(context, frameState, commandList, centralBodyUniformMap, shaderSet, renderState, projection) {
         updateLayers(this);
         selectTilesForRendering(this, context, frameState);
         processTileLoadQueue(this, context, frameState);
-        createRenderCommandsForSelectedTiles(this, context, frameState, shaderSet, projection, centralBodyUniformMap, colorCommandList, renderState);
+        createRenderCommandsForSelectedTiles(this, context, frameState, shaderSet, projection, centralBodyUniformMap, commandList, renderState);
     };
 
     CentralBodySurface.prototype.getTerrainProvider = function() {
@@ -137,9 +141,11 @@ define([
             return;
         }
 
+        //>>includeStart('debug', pragmas.debug);
         if (!defined(terrainProvider)) {
             throw new DeveloperError('terrainProvider is required.');
         }
+        //>>includeEnd('debug');
 
         this._terrainProvider = terrainProvider;
 
@@ -316,6 +322,8 @@ define([
         }
     }
 
+    var scratchCamera = new Cartographic();
+
     function selectTilesForRendering(surface, context, frameState) {
         var debug = surface._debug;
 
@@ -349,8 +357,8 @@ define([
 
         // We can't render anything before the level zero tiles exist.
         if (!defined(surface._levelZeroTiles)) {
-            if (surface._terrainProvider.isReady()) {
-                var terrainTilingScheme = surface._terrainProvider.getTilingScheme();
+            if (surface._terrainProvider.ready) {
+                var terrainTilingScheme = surface._terrainProvider.tilingScheme;
                 surface._levelZeroTiles = terrainTilingScheme.createLevelZeroTiles();
             } else {
                 // Nothing to do until the terrain provider is ready.
@@ -360,10 +368,10 @@ define([
 
         var cameraPosition = frameState.camera.positionWC;
 
-        var ellipsoid = surface._terrainProvider.getTilingScheme().getEllipsoid();
-        var cameraPositionCartographic = ellipsoid.cartesianToCartographic(cameraPosition);
+        var ellipsoid = surface._terrainProvider.tilingScheme.ellipsoid;
+        var cameraPositionCartographic = ellipsoid.cartesianToCartographic(cameraPosition, scratchCamera);
 
-        surface._ellipsoidalOccluder.setCameraPosition(cameraPosition);
+        surface._ellipsoidalOccluder.cameraPosition = cameraPosition;
 
         var tile;
 
@@ -402,7 +410,7 @@ define([
             // This one doesn't load children unless we refine to them.
             // We may want to revisit this in the future.
 
-            if (screenSpaceError(surface, context, frameState, cameraPosition, cameraPositionCartographic, tile) < surface._maxScreenSpaceError) {
+            if (screenSpaceError(surface, context, frameState, cameraPosition, cameraPositionCartographic, tile) < surface._maximumScreenSpaceError) {
                 // This tile meets SSE requirements, so render it.
                 addTileToRenderList(surface, tile);
             } else if (queueChildrenLoadAndDetermineIfChildrenAreAllRenderable(surface, frameState, tile)) {
@@ -449,24 +457,7 @@ define([
             return screenSpaceError2D(surface, context, frameState, cameraPosition, cameraPositionCartographic, tile);
         }
 
-        var extent = tile.extent;
-
-        var latitudeFactor = 1.0;
-
-        // Adjust by latitude in 3D only.
-        if (frameState.mode === SceneMode.SCENE3D) {
-            var latitudeClosestToEquator = 0.0;
-            if (extent.south > 0.0) {
-                latitudeClosestToEquator = extent.south;
-            } else if (extent.north < 0.0) {
-                latitudeClosestToEquator = extent.north;
-            }
-
-            latitudeFactor = Math.cos(latitudeClosestToEquator);
-        }
-
-        var maxGeometricError = latitudeFactor * surface._terrainProvider.getLevelMaximumGeometricError(tile.level);
-
+        var maxGeometricError = surface._terrainProvider.getLevelMaximumGeometricError(tile.level);
 
         var distance = Math.sqrt(distanceSquaredToTile(frameState, cameraPosition, cameraPositionCartographic, tile));
         tile.distance = distance;
@@ -525,7 +516,7 @@ define([
         if (frameState.mode !== SceneMode.SCENE3D) {
             boundingVolume = boundingSphereScratch;
             BoundingSphere.fromExtentWithHeights2D(tile.extent, frameState.scene2D.projection, tile.minimumHeight, tile.maximumHeight, boundingVolume);
-            boundingVolume.center = new Cartesian3(boundingVolume.center.z, boundingVolume.center.x, boundingVolume.center.y);
+            Cartesian3.fromElements(boundingVolume.center.z, boundingVolume.center.x, boundingVolume.center.y, boundingVolume.center);
 
             if (frameState.mode === SceneMode.MORPHING) {
                 boundingVolume = BoundingSphere.union(tile.boundingSphere3D, boundingVolume, boundingVolume);
@@ -651,7 +642,7 @@ define([
         // we're allowed to keep.
         surface._tileReplacementQueue.trimTiles(surface._tileCacheSize);
 
-        var startTime = Date.now();
+        var startTime = getTimestamp();
         var timeSlice = surface._loadQueueTimeSlice;
         var endTime = startTime + timeSlice;
 
@@ -661,7 +652,7 @@ define([
 
             tile.processStateMachine(context, terrainProvider, imageryLayerCollection);
 
-            if (Date.now() >= endTime) {
+            if (getTimestamp() >= endTime) {
                 break;
             }
         }
@@ -797,8 +788,12 @@ define([
     var tileExtentScratch = new Cartesian4();
     var rtcScratch = new Cartesian3();
     var centerEyeScratch = new Cartesian4();
+    var southwestScratch = new Cartesian3();
+    var northeastScratch = new Cartesian3();
 
-    function createRenderCommandsForSelectedTiles(surface, context, frameState, shaderSet, projection, centralBodyUniformMap, colorCommandList, renderState) {
+    function createRenderCommandsForSelectedTiles(surface, context, frameState, shaderSet, projection, centralBodyUniformMap, commandList, renderState) {
+        displayCredits(surface, frameState);
+
         var viewMatrix = frameState.camera.viewMatrix;
 
         var maxTextures = context.getMaximumTextureImageUnits();
@@ -832,8 +827,8 @@ define([
                 var oneOverMercatorHeight = 0.0;
 
                 if (frameState.mode !== SceneMode.SCENE3D) {
-                    var southwest = projection.project(tile.extent.getSouthwest());
-                    var northeast = projection.project(tile.extent.getNortheast());
+                    var southwest = projection.project(tile.extent.getSouthwest(), southwestScratch);
+                    var northeast = projection.project(tile.extent.getNortheast(), northeastScratch);
 
                     tileExtent.x = southwest.x;
                     tileExtent.y = southwest.y;
@@ -889,6 +884,7 @@ define([
                         command = new DrawCommand();
                         command.owner = tile;
                         command.cull = false;
+                        command.boundingVolume = new BoundingSphere();
                         tileCommands[tileCommandIndex] = command;
                         tileCommandUniformMaps[tileCommandIndex] = createTileUniformMap(centralBodyUniformMap);
                     }
@@ -976,6 +972,14 @@ define([
                         }
                         applyGamma = applyGamma || uniformMap.dayTextureOneOverGamma[numberOfDayTextures] !== 1.0 / ImageryLayer.DEFAULT_GAMMA;
 
+                        if (defined(imagery.credits)) {
+                            var creditDisplay = frameState.creditDisplay;
+                            var credits = imagery.credits;
+                            for (var creditIndex = 0, creditLength = credits.length; creditIndex < creditLength; ++creditIndex) {
+                                creditDisplay.addCredit(credits[creditIndex]);
+                            }
+                        }
+
                         ++numberOfDayTextures;
                     }
 
@@ -985,13 +989,14 @@ define([
                     uniformMap.waterMask = tile.waterMaskTexture;
                     Cartesian4.clone(tile.waterMaskTranslationAndScale, uniformMap.waterMaskTranslationAndScale);
 
-                    colorCommandList.push(command);
+                    commandList.push(command);
 
                     command.shaderProgram = shaderSet.getShaderProgram(context, tileSetIndex, applyBrightness, applyContrast, applyHue, applySaturation, applyGamma, applyAlpha);
                     command.renderState = renderState;
                     command.primitiveType = PrimitiveType.TRIANGLES;
                     command.vertexArray = tile.vertexArray;
                     command.uniformMap = uniformMap;
+                    command.pass = Pass.OPAQUE;
 
                     if (surface._debug.wireframe) {
                         createWireframeVertexArrayIfNecessary(context, surface, tile);
@@ -1001,18 +1006,18 @@ define([
                         }
                     }
 
-                    var boundingVolume = tile.boundingSphere3D;
+                    var boundingVolume = command.boundingVolume;
 
                     if (frameState.mode !== SceneMode.SCENE3D) {
-                        boundingVolume = BoundingSphere.fromExtentWithHeights2D(tile.extent, frameState.scene2D.projection, tile.minimumHeight, tile.maximumHeight);
-                        boundingVolume.center = new Cartesian3(boundingVolume.center.z, boundingVolume.center.x, boundingVolume.center.y);
+                        BoundingSphere.fromExtentWithHeights2D(tile.extent, frameState.scene2D.projection, tile.minimumHeight, tile.maximumHeight, boundingVolume);
+                        Cartesian3.fromElements(boundingVolume.center.z, boundingVolume.center.x, boundingVolume.center.y, boundingVolume.center);
 
                         if (frameState.mode === SceneMode.MORPHING) {
                             boundingVolume = BoundingSphere.union(tile.boundingSphere3D, boundingVolume, boundingVolume);
                         }
+                    } else {
+                        BoundingSphere.clone(tile.boundingSphere3D, boundingVolume);
                     }
-
-                    command.boundingVolume = boundingVolume;
 
                 } while (imageryIndex < imageryLen);
             }
@@ -1031,7 +1036,7 @@ define([
             return;
         }
 
-        tile.meshForWireframePromise = tile.terrainData.createMesh(surface._terrainProvider.getTilingScheme(), tile.x, tile.y, tile.level);
+        tile.meshForWireframePromise = tile.terrainData.createMesh(surface._terrainProvider.tilingScheme, tile.x, tile.y, tile.level);
         if (!defined(tile.meshForWireframePromise)) {
             // deferrred
             return;
@@ -1045,6 +1050,31 @@ define([
             }
             tile.meshForWireframePromise = undefined;
         });
+    }
+
+    function displayCredits(surface, frameState) {
+        var creditDisplay = frameState.creditDisplay;
+        var credit;
+
+        if (surface._terrainProvider.ready) {
+            credit = surface._terrainProvider.credit;
+            if (defined(credit)) {
+                creditDisplay.addCredit(credit);
+            }
+        }
+
+        var imageryLayerCollection = surface._imageryLayerCollection;
+        for ( var i = 0, len = imageryLayerCollection.length; i < len; ++i) {
+            var layer = imageryLayerCollection.get(i);
+            if (layer.show) {
+                if (layer.getImageryProvider().ready) {
+                    credit = layer.getImageryProvider().credit;
+                    if (defined(credit)) {
+                        creditDisplay.addCredit(credit);
+                    }
+                }
+            }
+        }
     }
 
     return CentralBodySurface;

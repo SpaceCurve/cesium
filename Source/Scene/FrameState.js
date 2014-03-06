@@ -1,11 +1,7 @@
 /*global define*/
 define([
-        '../Core/defined',
-        '../Core/Cartesian2',
         './SceneMode'
     ], function(
-        defined,
-        Cartesian2,
         SceneMode) {
     "use strict";
 
@@ -82,23 +78,17 @@ define([
 
         this.passes = {
             /**
-             * <code>true</code> if the primitive should update for a color pass, <code>false</code> otherwise.
+             * <code>true</code> if the primitive should update for a render pass, <code>false</code> otherwise.
              * @type {Boolean}
              * @default false
              */
-            color : false,
+            render : false,
             /**
              * <code>true</code> if the primitive should update for a picking pass, <code>false</code> otherwise.
              * @type {Boolean}
              * @default false
              */
-            pick : false,
-            /**
-             * <code>true</code> if the primitive should update for an overlay pass, <code>false</code> otherwise.
-             * @type {Boolean}
-             * @default false
-             */
-            overlay : false
+            pick : false
         };
 
         /**
@@ -108,16 +98,23 @@ define([
         this.creditDisplay = creditDisplay;
 
         /**
-         * An array of {@link Event} instances to raise at the end of the frame.
+         * An array of functions to be called at the end of the frame.  This array
+         * will be cleared after each frame.
+         * <p>
          * This allows queueing up events in <code>update</code> functions and
          * firing them at a time when the subscribers are free to change the
          * scene state, e.g., manipulate the camera, instead of firing events
          * directly in <code>update</code> functions.
+         * </p>
          *
          * @type {Array}
-         * @default []
+         *
+         * @example
+         * frameState.afterRender.push(function() {
+         *   // take some action, raise an event, etc.
+         * });
          */
-        this.events = [];
+        this.afterRender = [];
     };
 
     return FrameState;

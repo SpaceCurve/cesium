@@ -8,7 +8,7 @@
     <meta name="cesium-sandcastle-labels" content="Showcases">
     <title>Cesium Demo</title>
     <script type="text/javascript" src="../Sandcastle-header.js"></script>
-    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.8/require.js"></script>
+    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.9/require.js"></script>
     <script type="text/javascript">
     require.config({
         baseUrl : '../../../Source',
@@ -27,32 +27,19 @@
 require(['Cesium'], function(Cesium) {
     "use strict";
 
-    function createButtons(scene) {
-        var primitives = scene.getPrimitives();
-        var toolbar = document.getElementById('toolbar');
-        
-        var button = document.createElement('button');
-        button.className = 'cesium-button';
-        button.onclick = function() {
-            scene.scene2D.projection = new Cesium.GeographicProjection(Cesium.Ellipsoid.WGS84);
-        };
-        button.textContent = 'Geographic';
-        toolbar.appendChild(button);
-
-        button = document.createElement('button');
-        button.className = 'cesium-button';
-        button.onclick = function() {
-            scene.scene2D.projection = new Cesium.WebMercatorProjection(Cesium.Ellipsoid.WGS84);
-        };
-        button.textContent = 'Web Mercator';
-        toolbar.appendChild(button);
-    }
-
     var viewer = new Cesium.Viewer('cesiumContainer', {
         sceneMode : Cesium.SceneMode.SCENE2D
     });
 
-    createButtons(viewer.scene);
+    var scene = viewer.scene;
+
+    Sandcastle.addToolbarButton('Geographic', function() {
+        scene.scene2D.projection = new Cesium.GeographicProjection(Cesium.Ellipsoid.WGS84);
+    });
+
+    Sandcastle.addToolbarButton('Web Mercator', function() {
+        scene.scene2D.projection = new Cesium.WebMercatorProjection(Cesium.Ellipsoid.WGS84);
+    });
 
     Sandcastle.finishedLoading();
 });

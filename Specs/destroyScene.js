@@ -1,14 +1,16 @@
 /*global define*/
 define([
+        'Core/defined',
         'Specs/destroyCanvas'
     ], function(
+        defined,
         destroyCanvas) {
     "use strict";
 
     function destroyScene(scene) {
-        if (scene && !scene.isDestroyed()) {
-            var canvas = scene.getCanvas();
-            scene = scene && !scene.isDestroyed() && scene.destroy();
+        if (defined(scene) && !scene.isDestroyed()) {
+            var canvas = scene.canvas;
+            scene.destroy();
             destroyCanvas(canvas);
         }
     }

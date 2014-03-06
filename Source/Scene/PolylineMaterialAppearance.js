@@ -34,19 +34,19 @@ define([
      * @param {RenderState} [options.renderState=undefined] Optional render state to override the default render state.
      *
      * @example
-     * var primitive = new Primitive({
-     *   geometryInstances : new GeometryInstance({
-     *     geometry : new PolylineGeometry({
+     * var primitive = new Cesium.Primitive({
+     *   geometryInstances : new Cesium.GeometryInstance({
+     *     geometry : new Cesium.PolylineGeometry({
      *       positions : ellipsoid.cartographicArrayToCartesianArray([
-     *         Cartographic.fromDegrees(0.0, 0.0),
-     *         Cartographic.fromDegrees(5.0, 0.0)
+     *         Cesium.Cartographic.fromDegrees(0.0, 0.0),
+     *         Cesium.Cartographic.fromDegrees(5.0, 0.0)
      *       ]),
      *       width : 10.0,
-     *       vertexFormat : PolylineMaterialAppearance.VERTEX_FORMAT
+     *       vertexFormat : Cesium.PolylineMaterialAppearance.VERTEX_FORMAT
      *     })
      *   }),
-     *   appearance : new PolylineMaterialAppearance({
-     *     material : Material.fromType('Color')
+     *   appearance : new Cesium.PolylineMaterialAppearance({
+     *     material : Cesium.Material.fromType('Color')
      *   })
      * }));
      *
@@ -162,6 +162,26 @@ define([
      * @returns String The full GLSL fragment shader source.
      */
     PolylineMaterialAppearance.prototype.getFragmentShaderSource = Appearance.prototype.getFragmentShaderSource;
+
+    /**
+     * Determines if the geometry is translucent based on {@link PolylineMaterialAppearance#translucent} and {@link Material#isTranslucent}.
+     *
+     * @memberof PolylineMaterialAppearance
+     *
+     * @returns {Boolean} <code>true</code> if the appearance is translucent.
+     */
+    PolylineMaterialAppearance.prototype.isTranslucent = Appearance.prototype.isTranslucent;
+
+    /**
+     * Creates a render state.  This is not the final {@link RenderState} instance; instead,
+     * it can contain a subset of render state properties identical to <code>renderState</code>
+     * passed to {@link Context#createRenderState}.
+     *
+     * @memberof PolylineMaterialAppearance
+     *
+     * @returns {Object} The render state.
+     */
+    PolylineMaterialAppearance.prototype.getRenderState = Appearance.prototype.getRenderState;
 
     return PolylineMaterialAppearance;
 });

@@ -5,7 +5,6 @@ define([
         '../Core/VertexFormat',
         './Material',
         './Appearance',
-        './MaterialAppearance',
         '../Shaders/Appearances/EllipsoidSurfaceAppearanceVS',
         '../Shaders/Appearances/EllipsoidSurfaceAppearanceFS'
     ], function(
@@ -14,7 +13,6 @@ define([
         VertexFormat,
         Material,
         Appearance,
-        MaterialAppearance,
         EllipsoidSurfaceAppearanceVS,
         EllipsoidSurfaceAppearanceFS) {
     "use strict";
@@ -30,7 +28,7 @@ define([
      * @constructor
      *
      * @param {Boolean} [options.flat=false] When <code>true</code>, flat shading is used in the fragment shader, which means lighting is not taking into account.
-     * @param {Boolean} [options.faceForward=false] When <code>true</code>, the fragment shader flips the surface normal as needed to ensure that the normal faces the viewer to avoid dark spots.  This is useful when both sides of a geometry should be shaded like {@link WallGeometry}.
+     * @param {Boolean} [options.faceForward=options.aboveGround] When <code>true</code>, the fragment shader flips the surface normal as needed to ensure that the normal faces the viewer to avoid dark spots.  This is useful when both sides of a geometry should be shaded like {@link WallGeometry}.
      * @param {Boolean} [options.translucent=true] When <code>true</code>, the geometry is expected to appear translucent so {@link EllipsoidSurfaceAppearance#renderState} has alpha blending enabled.
      * @param {Boolean} [options.aboveGround=false] When <code>true</code>, the geometry is expected to be on the ellipsoid's surface - not at a constant height above it - so {@link EllipsoidSurfaceAppearance#renderState} has backface culling enabled.
      * @param {Material} [options.material=Material.ColorType] The material used to determine the fragment color.
@@ -39,15 +37,15 @@ define([
      * @param {RenderState} [options.renderState=undefined] Optional render state to override the default render state.
      *
      * @example
-     * var primitive = new Primitive({
-     *   geometryInstances : new GeometryInstance({
-     *     geometry : new PolygonGeometry({
-     *       vertexFormat : EllipsoidSurfaceAppearance.VERTEX_FORMAT,
+     * var primitive = new Cesium.Primitive({
+     *   geometryInstances : new Cesium.GeometryInstance({
+     *     geometry : new Cesium.PolygonGeometry({
+     *       vertexFormat : Cesium.EllipsoidSurfaceAppearance.VERTEX_FORMAT,
      *       // ...
      *     })
      *   }),
-     *   appearance : new EllipsoidSurfaceAppearance({
-     *     material : Material.fromType('Stripe')
+     *   appearance : new Cesium.EllipsoidSurfaceAppearance({
+     *     material : Cesium.Material.fromType('Stripe')
      *   })
      * });
      *
@@ -139,9 +137,9 @@ define([
          *
          * @readonly
          *
-         * @default false
+         * @default true
          */
-        this.faceForward = defaultValue(options.faceForward, false);
+        this.faceForward = defaultValue(options.faceForward, aboveGround);
 
         /**
          * When <code>true</code>, the geometry is expected to appear translucent so
@@ -162,7 +160,7 @@ define([
          *
          * @default true
          */
-        this.closed = !aboveGround;
+        this.closed = false;
 
         /**
          * When <code>true</code>, the geometry is expected to be on the ellipsoid's
@@ -188,15 +186,35 @@ define([
     EllipsoidSurfaceAppearance.VERTEX_FORMAT = VertexFormat.POSITION_AND_ST;
 
     /**
-     * Procedurally creates the full GLSL fragment shader source.  For {@link PerInstanceColorAppearance},
-     * this is derived from {@link PerInstanceColorAppearance#fragmentShaderSource}, {@link PerInstanceColorAppearance#flat},
-     * and {@link PerInstanceColorAppearance#faceForward}.
+     * Procedurally creates the full GLSL fragment shader source.  For {@link EllipsoidSurfaceAppearance},
+     * this is derived from {@link EllipsoidSurfaceAppearance#fragmentShaderSource}, {@link EllipsoidSurfaceAppearance#flat},
+     * and {@link EllipsoidSurfaceAppearance#faceForward}.
      *
      * @memberof EllipsoidSurfaceAppearance
      *
      * @returns String The full GLSL fragment shader source.
      */
     EllipsoidSurfaceAppearance.prototype.getFragmentShaderSource = Appearance.prototype.getFragmentShaderSource;
+
+    /**
+     * Determines if the geometry is translucent based on {@link EllipsoidSurfaceAppearance#translucent} and {@link Material#isTranslucent}.
+     *
+     * @memberof EllipsoidSurfaceAppearance
+     *
+     * @returns {Boolean} <code>true</code> if the appearance is translucent.
+     */
+    EllipsoidSurfaceAppearance.prototype.isTranslucent = Appearance.prototype.isTranslucent;
+
+    /**
+     * Creates a render state.  This is not the final {@link RenderState} instance; instead,
+     * it can contain a subset of render state properties identical to <code>renderState</code>
+     * passed to {@link Context#createRenderState}.
+     *
+     * @memberof EllipsoidSurfaceAppearance
+     *
+     * @returns {Object} The render state.
+     */
+    EllipsoidSurfaceAppearance.prototype.getRenderState = Appearance.prototype.getRenderState;
 
     return EllipsoidSurfaceAppearance;
 });

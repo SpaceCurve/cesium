@@ -46,17 +46,17 @@ define([
      * @param {Cartesian3} [result] The object in which the result will be stored.
      * @returns The modified result parameter, or a new instance if none was provided.
      *
-     * @exception {DeveloperError} t is a required number
-     *
      * @example
      * //Get the first intersection point of a ray and an ellipsoid.
-     * var intersection = IntersectionTests.rayEllipsoid(ray, ellipsoid);
+     * var intersection = Cesium.IntersectionTests.rayEllipsoid(ray, ellipsoid);
      * var point = ray.getPoint(intersection.start);
      */
     Ray.prototype.getPoint = function(t, result) {
+        //>>includeStart('debug', pragmas.debug);
         if (typeof t !== 'number') {
             throw new DeveloperError('t is a required number');
         }
+        //>>includeEnd('debug');
 
         result = Cartesian3.multiplyByScalar(this.direction, t, result);
         return Cartesian3.add(this.origin, result, result);

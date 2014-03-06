@@ -5,6 +5,7 @@ define([
         '../Core/loadImage',
         '../Core/defaultValue',
         '../Core/defined',
+        '../Core/defineProperties',
         '../Core/destroyObject',
         '../Core/BoundingRectangle',
         '../Core/BoundingSphere',
@@ -26,19 +27,16 @@ define([
         '../Core/Transforms',
         '../Renderer/BufferUsage',
         '../Renderer/ClearCommand',
-        '../Renderer/CommandLists',
         '../Renderer/DepthFunction',
         '../Renderer/DrawCommand',
         '../Renderer/createShaderSource',
+        '../Renderer/Pass',
         './CentralBodySurface',
         './CentralBodySurfaceShaderSet',
-        './CreditDisplay',
         './EllipsoidTerrainProvider',
         './ImageryLayerCollection',
-        './Material',
         './SceneMode',
         './TerrainProvider',
-        './ViewportQuad',
         '../Shaders/CentralBodyFS',
         '../Shaders/CentralBodyFSDepth',
         '../Shaders/CentralBodyFSPole',
@@ -52,6 +50,7 @@ define([
         loadImage,
         defaultValue,
         defined,
+        defineProperties,
         destroyObject,
         BoundingRectangle,
         BoundingSphere,
@@ -73,19 +72,16 @@ define([
         Transforms,
         BufferUsage,
         ClearCommand,
-        CommandLists,
         DepthFunction,
         DrawCommand,
         createShaderSource,
+        Pass,
         CentralBodySurface,
         CentralBodySurfaceShaderSet,
-        CreditDisplay,
         EllipsoidTerrainProvider,
         ImageryLayerCollection,
-        Material,
         SceneMode,
         TerrainProvider,
-        ViewportQuad,
         CentralBodyFS,
         CentralBodyFSDepth,
         CentralBodyFSPole,
@@ -122,9 +118,9 @@ define([
             imageryLayerCollection : imageryLayerCollection
         });
 
-        this._occluder = new Occluder(new BoundingSphere(Cartesian3.ZERO, ellipsoid.getMinimumRadius()), Cartesian3.ZERO);
+        this._occluder = new Occluder(new BoundingSphere(Cartesian3.ZERO, ellipsoid.minimumRadius), Cartesian3.ZERO);
 
-        this._surfaceShaderSet = new CentralBodySurfaceShaderSet(TerrainProvider.attributeIndices);
+        this._surfaceShaderSet = new CentralBodySurfaceShaderSet(TerrainProvider.attributeLocations);
 
         this._rsColor = undefined;
         this._rsColorWithoutDepthTest = undefined;
@@ -137,20 +133,21 @@ define([
 
         this._depthCommand = new DrawCommand();
         this._depthCommand.primitiveType = PrimitiveType.TRIANGLES;
-        this._depthCommand.boundingVolume = new BoundingSphere(Cartesian3.ZERO, ellipsoid.getMaximumRadius());
+        this._depthCommand.boundingVolume = new BoundingSphere(Cartesian3.ZERO, ellipsoid.maximumRadius);
+        this._depthCommand.pass = Pass.OPAQUE;
         this._depthCommand.owner = this;
 
         this._northPoleCommand = new DrawCommand();
         this._northPoleCommand.primitiveType = PrimitiveType.TRIANGLE_FAN;
+        this._northPoleCommand.pass = Pass.OPAQUE;
         this._northPoleCommand.owner = this;
         this._southPoleCommand = new DrawCommand();
         this._southPoleCommand.primitiveType = PrimitiveType.TRIANGLE_FAN;
+        this._southPoleCommand.pass = Pass.OPAQUE;
         this._southPoleCommand.owner = this;
 
         this._drawNorthPole = false;
         this._drawSouthPole = false;
-
-        this._commandLists = new CommandLists();
 
         /**
          * Determines the color of the north pole. If the day tile provider imagery does not
@@ -203,6 +200,15 @@ define([
         this.depthTestAgainstTerrain = false;
 
         /**
+         * The maximum screen-space error used to drive level-of-detail refinement.  Higher
+         * values will provide better performance but lower visual quality.
+         *
+         * @type {Number}
+         * @default 2
+         */
+        this.maximumScreenSpaceError = 2;
+
+        /**
          * The size of the terrain tile cache, expressed as a number of tiles.  Any additional
          * tiles beyond this number will be freed, as long as they aren't needed for rendering
          * this frame.  A larger number will consume more memory but will show detail faster
@@ -213,11 +219,39 @@ define([
          */
         this.tileCacheSize = 100;
 
+        /**
+         * Enable lighting the globe with the sun as a light source.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        this.enableLighting = false;
+        this._enableLighting = false;
+
+        /**
+         * The distance where everything becomes lit. This only takes effect
+         * when <code>enableLighting</code> is <code>true</code>.
+         *
+         * @type {Number}
+         * @default 6500000.0
+         */
+        this.lightingFadeOutDistance = 6500000.0;
+
+        /**
+         * The distance where lighting resumes. This only takes effect
+         * when <code>enableLighting</code> is <code>true</code>.
+         *
+         * @type {Number}
+         * @default 9000000.0
+         */
+        this.lightingFadeInDistance = 9000000.0;
+
         this._lastOceanNormalMapUrl = undefined;
         this._oceanNormalMap = undefined;
         this._zoomedOutOceanSpecularIntensity = 0.5;
         this._showingPrettyOcean = false;
         this._hasWaterMask = false;
+        this._lightingFadeDistance = new Cartesian2(this.lightingFadeOutDistance, this.lightingFadeInDistance);
 
         var that = this;
 
@@ -227,75 +261,87 @@ define([
             },
             u_oceanNormalMap : function() {
                 return that._oceanNormalMap;
+            },
+            u_lightingFadeDistance : function() {
+                return that._lightingFadeDistance;
             }
         };
     };
 
-    /**
-     * Gets an ellipsoid describing the shape of this central body.
-     *
-     * @memberof CentralBody
-     *
-     * @returns {Ellipsoid}
-     */
-    CentralBody.prototype.getEllipsoid = function() {
-        return this._ellipsoid;
-    };
+    defineProperties(CentralBody.prototype, {
+        /**
+         * Gets an ellipsoid describing the shape of this central body.
+         * @memberof CentralBody.prototype
+         * @type {Ellipsoid}
+         */
+        ellipsoid : {
+            get: function() {
+                return this._ellipsoid;
+            }
+        },
 
-    /**
-     * Gets the collection of image layers that will be rendered on this central body.
-     *
-     * @memberof CentralBody
-     *
-     * @returns {ImageryLayerCollection}
-     */
-    CentralBody.prototype.getImageryLayers = function() {
-        return this._imageryLayerCollection;
-    };
+        /**
+         * Gets the collection of image layers that will be rendered on this central body.
+         * @memberof CentralBody.prototype
+         * @type {ImageryLayerCollection}
+         */
+        imageryLayers: {
+            get : function() {
+                return this._imageryLayerCollection;
+            }
+        }
+    });
 
     var depthQuadScratch = FeatureDetection.supportsTypedArrays() ? new Float32Array(12) : [];
+    var scratchCartesian1 = new Cartesian3();
+    var scratchCartesian2 = new Cartesian3();
+    var scratchCartesian3 = new Cartesian3();
+    var scratchCartesian4 = new Cartesian3();
 
     function computeDepthQuad(centralBody, frameState) {
-        var radii = centralBody._ellipsoid.getRadii();
+        var radii = centralBody._ellipsoid.radii;
         var p = frameState.camera.positionWC;
 
         // Find the corresponding position in the scaled space of the ellipsoid.
-        var q = Cartesian3.multiplyComponents(centralBody._ellipsoid.getOneOverRadii(), p);
+        var q = Cartesian3.multiplyComponents(centralBody._ellipsoid.oneOverRadii, p, scratchCartesian1);
 
         var qMagnitude = Cartesian3.magnitude(q);
-        var qUnit = Cartesian3.normalize(q);
+        var qUnit = Cartesian3.normalize(q, scratchCartesian2);
 
         // Determine the east and north directions at q.
-        var eUnit = Cartesian3.normalize(Cartesian3.cross(Cartesian3.UNIT_Z, q));
-        var nUnit = Cartesian3.normalize(Cartesian3.cross(qUnit, eUnit));
+        var eUnit = Cartesian3.normalize(Cartesian3.cross(Cartesian3.UNIT_Z, q, scratchCartesian3), scratchCartesian3);
+        var nUnit = Cartesian3.normalize(Cartesian3.cross(qUnit, eUnit, scratchCartesian4), scratchCartesian4);
 
         // Determine the radius of the 'limb' of the ellipsoid.
         var wMagnitude = Math.sqrt(Cartesian3.magnitudeSquared(q) - 1.0);
 
         // Compute the center and offsets.
-        var center = Cartesian3.multiplyByScalar(qUnit, 1.0 / qMagnitude);
+        var center = Cartesian3.multiplyByScalar(qUnit, 1.0 / qMagnitude, scratchCartesian1);
         var scalar = wMagnitude / qMagnitude;
-        var eastOffset = Cartesian3.multiplyByScalar(eUnit, scalar);
-        var northOffset = Cartesian3.multiplyByScalar(nUnit, scalar);
+        var eastOffset = Cartesian3.multiplyByScalar(eUnit, scalar, scratchCartesian2);
+        var northOffset = Cartesian3.multiplyByScalar(nUnit, scalar, scratchCartesian3);
 
         // A conservative measure for the longitudes would be to use the min/max longitudes of the bounding frustum.
-        var upperLeft = Cartesian3.multiplyComponents(radii, Cartesian3.subtract(Cartesian3.add(center, northOffset), eastOffset));
-        var upperRight = Cartesian3.multiplyComponents(radii, Cartesian3.add(Cartesian3.add(center, northOffset), eastOffset));
-        var lowerLeft = Cartesian3.multiplyComponents(radii, Cartesian3.subtract(Cartesian3.subtract(center, northOffset), eastOffset));
-        var lowerRight = Cartesian3.multiplyComponents(radii, Cartesian3.add(Cartesian3.subtract(center, northOffset), eastOffset));
+        var upperLeft = Cartesian3.add(center, northOffset, scratchCartesian4);
+        Cartesian3.subtract(upperLeft, eastOffset, upperLeft);
+        Cartesian3.multiplyComponents(radii, upperLeft, upperLeft);
+        Cartesian3.pack(upperLeft, depthQuadScratch, 0);
 
-        depthQuadScratch[0] = upperLeft.x;
-        depthQuadScratch[1] = upperLeft.y;
-        depthQuadScratch[2] = upperLeft.z;
-        depthQuadScratch[3] = lowerLeft.x;
-        depthQuadScratch[4] = lowerLeft.y;
-        depthQuadScratch[5] = lowerLeft.z;
-        depthQuadScratch[6] = upperRight.x;
-        depthQuadScratch[7] = upperRight.y;
-        depthQuadScratch[8] = upperRight.z;
-        depthQuadScratch[9] = lowerRight.x;
-        depthQuadScratch[10] = lowerRight.y;
-        depthQuadScratch[11] = lowerRight.z;
+        var lowerLeft = Cartesian3.subtract(center, northOffset, scratchCartesian4);
+        Cartesian3.subtract(lowerLeft, eastOffset, lowerLeft);
+        Cartesian3.multiplyComponents(radii, lowerLeft, lowerLeft);
+        Cartesian3.pack(lowerLeft, depthQuadScratch, 3);
+
+        var upperRight = Cartesian3.add(center, northOffset, scratchCartesian4);
+        Cartesian3.add(upperRight, eastOffset, upperRight);
+        Cartesian3.multiplyComponents(radii, upperRight, upperRight);
+        Cartesian3.pack(upperRight, depthQuadScratch, 6);
+
+        var lowerRight = Cartesian3.subtract(center, northOffset, scratchCartesian4);
+        Cartesian3.add(lowerRight, eastOffset, lowerRight);
+        Cartesian3.multiplyComponents(radii, lowerRight, lowerRight);
+        Cartesian3.pack(lowerRight, depthQuadScratch, 9);
+
         return depthQuadScratch;
     }
 
@@ -341,10 +387,10 @@ define([
             return;
         }
 
-        if (!terrainProvider.isReady()) {
+        if (!terrainProvider.ready) {
             return;
         }
-        var terrainMaxExtent = terrainProvider.getTilingScheme().getExtent();
+        var terrainMaxExtent = terrainProvider.tilingScheme.extent;
 
         var viewProjMatrix = context.getUniformState().getViewProjection();
         var viewport = viewportScratch;
@@ -400,7 +446,7 @@ define([
                     });
                     centralBody._northPoleCommand.vertexArray = context.createVertexArrayFromGeometry({
                         geometry : geometry,
-                        attributeIndices : {
+                        attributeLocations : {
                             position : 0
                         },
                         bufferUsage : BufferUsage.STREAM_DRAW
@@ -449,7 +495,7 @@ define([
                      });
                      centralBody._southPoleCommand.vertexArray = context.createVertexArrayFromGeometry({
                          geometry : geometry,
-                         attributeIndices : {
+                         attributeLocations : {
                              position : 0
                          },
                          bufferUsage : BufferUsage.STREAM_DRAW
@@ -461,7 +507,7 @@ define([
         }
 
         var poleIntensity = 0.0;
-        var baseLayer = centralBody._imageryLayerCollection.getLength() > 0 ? centralBody._imageryLayerCollection.get(0) : undefined;
+        var baseLayer = centralBody._imageryLayerCollection.length > 0 ? centralBody._imageryLayerCollection.get(0) : undefined;
         if (defined(baseLayer) && defined(baseLayer.getImageryProvider()) && defined(baseLayer.getImageryProvider().getPoleIntensity)) {
             poleIntensity = baseLayer.getImageryProvider().getPoleIntensity();
         }
@@ -474,21 +520,21 @@ define([
 
         var that = centralBody;
         if (!defined(centralBody._northPoleCommand.uniformMap)) {
-            var northPoleUniforms = combine([drawUniforms, {
+            var northPoleUniforms = combine(drawUniforms, {
                 u_color : function() {
                     return that.northPoleColor;
                 }
-            }], false, false);
-            centralBody._northPoleCommand.uniformMap = combine([northPoleUniforms, centralBody._drawUniforms], false, false);
+            });
+            centralBody._northPoleCommand.uniformMap = combine(northPoleUniforms, centralBody._drawUniforms);
         }
 
         if (!defined(centralBody._southPoleCommand.uniformMap)) {
-            var southPoleUniforms = combine([drawUniforms, {
+            var southPoleUniforms = combine(drawUniforms, {
                 u_color : function() {
                     return that.southPoleColor;
                 }
-            }], false, false);
-            centralBody._southPoleCommand.uniformMap = combine([southPoleUniforms, centralBody._drawUniforms], false, false);
+            });
+            centralBody._southPoleCommand.uniformMap = combine(southPoleUniforms, centralBody._drawUniforms);
         }
     }
 
@@ -582,7 +628,7 @@ define([
             });
             this._depthCommand.vertexArray = context.createVertexArrayFromGeometry({
                 geometry : geometry,
-                attributeIndices : {
+                attributeLocations : {
                     position : 0
                 },
                 bufferUsage : BufferUsage.DYNAMIC_DRAW
@@ -601,7 +647,8 @@ define([
                 });
         }
 
-        if (this._surface._terrainProvider.hasWaterMask() &&
+        if (this._surface._terrainProvider.ready &&
+            this._surface._terrainProvider.hasWaterMask() &&
             this.oceanNormalMapUrl !== this._lastOceanNormalMapUrl) {
 
             this._lastOceanNormalMapUrl = this.oceanNormalMapUrl;
@@ -617,8 +664,9 @@ define([
 
         // Initial compile or re-compile if uber-shader parameters changed
         var projectionChanged = this._projection !== projection;
-        var hasWaterMask = this._surface._terrainProvider.hasWaterMask();
+        var hasWaterMask = this._surface._terrainProvider.ready && this._surface._terrainProvider.hasWaterMask();
         var hasWaterMaskChanged = this._hasWaterMask !== hasWaterMask;
+        var hasEnableLightingChanged = this._enableLighting !== this.enableLighting;
 
         if (!defined(this._surfaceShaderSet) ||
             !defined(this._northPoleCommand.shaderProgram) ||
@@ -626,6 +674,7 @@ define([
             modeChanged ||
             projectionChanged ||
             hasWaterMaskChanged ||
+            hasEnableLightingChanged ||
             (defined(this._oceanNormalMap)) !== this._showingPrettyOcean) {
 
             var getPosition3DMode = 'vec4 getPosition(vec3 position3DWC) { return getPosition3DMode(position3DWC); }';
@@ -662,7 +711,10 @@ define([
             }
 
             this._surfaceShaderSet.baseVertexShaderString = createShaderSource({
-                defines : [hasWaterMask ? 'SHOW_REFLECTIVE_OCEAN' : ''],
+                defines : [
+                    (hasWaterMask ? 'SHOW_REFLECTIVE_OCEAN' : ''),
+                    (this.enableLighting ? 'ENABLE_LIGHTING' : '')
+                ],
                 sources : [CentralBodyVS, getPositionMode, get2DYPositionFraction]
             });
 
@@ -671,20 +723,22 @@ define([
             this._surfaceShaderSet.baseFragmentShaderString = createShaderSource({
                 defines : [
                     (hasWaterMask ? 'SHOW_REFLECTIVE_OCEAN' : ''),
-                    (showPrettyOcean ? 'SHOW_OCEAN_WAVES' : '')
+                    (showPrettyOcean ? 'SHOW_OCEAN_WAVES' : ''),
+                    (this.enableLighting ? 'ENABLE_LIGHTING' : '')
                 ],
                 sources : [CentralBodyFS]
             });
             this._surfaceShaderSet.invalidateShaders();
 
             var poleShaderProgram = shaderCache.replaceShaderProgram(this._northPoleCommand.shaderProgram,
-                CentralBodyVSPole, CentralBodyFSPole, TerrainProvider.attributeIndices);
+                CentralBodyVSPole, CentralBodyFSPole, TerrainProvider.attributeLocations);
 
             this._northPoleCommand.shaderProgram = poleShaderProgram;
             this._southPoleCommand.shaderProgram = poleShaderProgram;
 
             this._showingPrettyOcean = defined(this._oceanNormalMap);
             this._hasWaterMask = hasWaterMask;
+            this._enableLighting = this.enableLighting;
         }
 
         var cameraPosition = frameState.camera.positionWC;
@@ -697,20 +751,15 @@ define([
         this._projection = projection;
 
         var pass = frameState.passes;
-        var commandLists = this._commandLists;
-        commandLists.removeAll();
-
-        if (pass.color) {
-            var colorCommandList = commandLists.colorList;
-
+        if (pass.render) {
             // render quads to fill the poles
             if (mode === SceneMode.SCENE3D) {
                 if (this._drawNorthPole) {
-                    colorCommandList.push(this._northPoleCommand);
+                    commandList.push(this._northPoleCommand);
                 }
 
                 if (this._drawSouthPole) {
-                    colorCommandList.push(this._southPoleCommand);
+                    commandList.push(this._southPoleCommand);
                 }
             }
 
@@ -721,24 +770,26 @@ define([
                 this._zoomedOutOceanSpecularIntensity = 0.0;
             }
 
+            this._lightingFadeDistance.x = this.lightingFadeOutDistance;
+            this._lightingFadeDistance.y = this.lightingFadeInDistance;
+
+            this._surface._maximumScreenSpaceError = this.maximumScreenSpaceError;
             this._surface._tileCacheSize = this.tileCacheSize;
             this._surface.setTerrainProvider(this.terrainProvider);
             this._surface.update(context,
                     frameState,
-                    colorCommandList,
+                    commandList,
                     this._drawUniforms,
                     this._surfaceShaderSet,
                     this._rsColor,
                     this._projection);
 
-            displayCredits(this, frameState);
-
             // render depth plane
             if (mode === SceneMode.SCENE3D || mode === SceneMode.COLUMBUS_VIEW) {
                 if (!this.depthTestAgainstTerrain) {
-                    colorCommandList.push(this._clearDepthCommand);
+                    commandList.push(this._clearDepthCommand);
                     if (mode === SceneMode.SCENE3D) {
-                        colorCommandList.push(this._depthCommand);
+                        commandList.push(this._depthCommand);
                     }
                 }
             }
@@ -747,11 +798,7 @@ define([
         if (pass.pick) {
             // Not actually pickable, but render depth-only so primitives on the backface
             // of the globe are not picked.
-            commandLists.pickList.push(this._depthCommand);
-        }
-
-        if (!commandLists.empty()) {
-            commandList.push(commandLists);
+            commandList.push(this._depthCommand);
         }
     };
 
@@ -808,25 +855,6 @@ define([
 
         return destroyObject(this);
     };
-
-    function displayCredits(centralBody, frameState) {
-        var creditDisplay = frameState.creditDisplay;
-        var credit = centralBody._surface._terrainProvider.getCredit();
-        if (defined(credit)) {
-            creditDisplay.addCredit(credit);
-        }
-
-        var imageryLayerCollection = centralBody._imageryLayerCollection;
-        for ( var i = 0, len = imageryLayerCollection.getLength(); i < len; ++i) {
-            var layer = imageryLayerCollection.get(i);
-            if (layer.show) {
-                credit = layer.getImageryProvider().getCredit();
-                if (defined(credit)) {
-                    creditDisplay.addCredit(credit);
-                }
-            }
-        }
-    }
 
     return CentralBody;
 });

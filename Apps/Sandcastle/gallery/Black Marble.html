@@ -8,7 +8,7 @@
     <meta name="cesium-sandcastle-labels" content="Beginner, Showcases">
     <title>Cesium Demo</title>
     <script type="text/javascript" src="../Sandcastle-header.js"></script>
-    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.8/require.js"></script>
+    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.9/require.js"></script>
     <script type="text/javascript">
     require.config({
         baseUrl : '../../../Source',
@@ -28,7 +28,7 @@ require(['Cesium'], function(Cesium) {
 
     var widget = new Cesium.CesiumWidget('cesiumContainer', {
         imageryProvider : new Cesium.TileMapServiceImageryProvider({
-            url : 'http://cesium.agi.com/blackmarble',
+            url : 'http://cesiumjs.org/blackmarble',
             maximumLevel : 8,
             credit : 'Black Marble imagery courtesy NASA Earth Observatory'
         })
