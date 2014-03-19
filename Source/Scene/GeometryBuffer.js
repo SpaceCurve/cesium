@@ -26,8 +26,8 @@ define([
   function GeometryBuffer(scene, atlas) {
     this.scene = scene;
     this.billboards = new BillboardCollection();
-    this.billboards.setTextureAtlas(atlas);
-    scene.getPrimitives().add(this.billboards);
+    this.billboards.textureAtlas = atlas;
+    scene.primitives.add(this.billboards);
 
     this.lineBuf = [];
     this.polyBuf = [];
@@ -96,7 +96,7 @@ define([
           flat: true
         })
       });
-      this.scene.getPrimitives().add(tris);
+      this.scene.primitives.add(tris);
       this.drawing.push(tris);
     }
 
@@ -109,7 +109,7 @@ define([
           flat: true
         })
       });
-      this.scene.getPrimitives().add(lines);
+      this.scene.primitives.add(lines);
       this.drawing.push(lines);
     }
   };
@@ -120,7 +120,7 @@ define([
 
     this.billboards.removeAll();
     for(var i = 0; i < this.drawing.length; ++i) {
-      this.scene.getPrimitives().remove(this.drawing[i]);
+      this.scene.primitives.remove(this.drawing[i]);
     }
     this.drawing.length = 0;
   };
