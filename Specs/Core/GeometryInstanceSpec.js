@@ -1,24 +1,24 @@
 /*global defineSuite*/
 defineSuite([
-         'Core/GeometryInstance',
-         'Core/Geometry',
-         'Core/GeometryAttribute',
-         'Core/GeometryInstanceAttribute',
-         'Core/ComponentDatatype',
-         'Core/BoundingSphere',
-         'Core/Cartesian3',
-         'Core/PrimitiveType',
-         'Core/Matrix4'
-     ], function(
-         GeometryInstance,
-         Geometry,
-         GeometryAttribute,
-         GeometryInstanceAttribute,
-         ComponentDatatype,
-         BoundingSphere,
-         Cartesian3,
-         PrimitiveType,
-         Matrix4) {
+        'Core/GeometryInstance',
+        'Core/BoundingSphere',
+        'Core/Cartesian3',
+        'Core/ComponentDatatype',
+        'Core/Geometry',
+        'Core/GeometryAttribute',
+        'Core/GeometryInstanceAttribute',
+        'Core/Matrix4',
+        'Core/PrimitiveType'
+    ], function(
+        GeometryInstance,
+        BoundingSphere,
+        Cartesian3,
+        ComponentDatatype,
+        Geometry,
+        GeometryAttribute,
+        GeometryInstanceAttribute,
+        Matrix4,
+        PrimitiveType) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -39,7 +39,7 @@ defineSuite([
             primitiveType : PrimitiveType.TRIANGLES,
             boundingSphere : new BoundingSphere(new Cartesian3(0.5, 0.5, 0.0), 1.0)
         });
-        var modelMatrix = Matrix4.multiplyByTranslation(Matrix4.IDENTITY, new Cartesian3(0.0, 0.0, 9000000.0));
+        var modelMatrix = Matrix4.multiplyByTranslation(Matrix4.IDENTITY, new Cartesian3(0.0, 0.0, 9000000.0), new Matrix4());
         var attributes = {
             color : new GeometryInstanceAttribute({
                 componentDatatype : ComponentDatatype.UNSIGNED_BYTE,

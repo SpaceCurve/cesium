@@ -1,14 +1,14 @@
 /*global define*/
 define([
+        '../Core/Color',
         '../Core/defaultValue',
         '../Core/defineProperties',
-        '../Core/Color',
         '../Core/Event',
-        './GeographicTilingScheme'
+        '../Core/GeographicTilingScheme'
     ], function(
+        Color,
         defaultValue,
         defineProperties,
-        Color,
         Event,
         GeographicTilingScheme) {
     "use strict";
@@ -21,19 +21,20 @@ define([
      * @alias TileCoordinatesImageryProvider
      * @constructor
      *
-     * @param {TilingScheme} [description.tilingScheme=new GeographicTilingScheme()] The tiling scheme for which to draw tiles.
-     * @param {Color} [description.color=Color.YELLOW] The color to draw the tile box and label.
-     * @param {Number} [description.tileWidth=256] The width of the tile for level-of-detail selection purposes.
-     * @param {Number} [description.tileHeight=256] The height of the tile for level-of-detail selection purposes.
+     * @param {Object} [options] Object with the following properties:
+     * @param {TilingScheme} [options.tilingScheme=new GeographicTilingScheme()] The tiling scheme for which to draw tiles.
+     * @param {Color} [options.color=Color.YELLOW] The color to draw the tile box and label.
+     * @param {Number} [options.tileWidth=256] The width of the tile for level-of-detail selection purposes.
+     * @param {Number} [options.tileHeight=256] The height of the tile for level-of-detail selection purposes.
      */
-    var TileCoordinatesImageryProvider = function TileCoordinatesImageryProvider(description) {
-        description = defaultValue(description, {});
+    var TileCoordinatesImageryProvider = function TileCoordinatesImageryProvider(options) {
+        options = defaultValue(options, {});
 
-        this._tilingScheme = defaultValue(description.tilingScheme, new GeographicTilingScheme());
-        this._color = defaultValue(description.color, Color.YELLOW);
+        this._tilingScheme = defaultValue(options.tilingScheme, new GeographicTilingScheme());
+        this._color = defaultValue(options.color, Color.YELLOW);
         this._errorEvent = new Event();
-        this._tileWidth = defaultValue(description.tileWidth, 256);
-        this._tileHeight = defaultValue(description.tileHeight, 256);
+        this._tileWidth = defaultValue(options.tileWidth, 256);
+        this._tileHeight = defaultValue(options.tileHeight, 256);
     };
 
 
@@ -110,14 +111,14 @@ define([
         },
 
         /**
-         * Gets the extent, in radians, of the imagery provided by this instance.  This function should
+         * Gets the rectangle, in radians, of the imagery provided by this instance.  This function should
          * not be called before {@link TileCoordinatesImageryProvider#ready} returns true.
          * @memberof TileCoordinatesImageryProvider.prototype
-         * @type {Extent}
+         * @type {Rectangle}
          */
-        extent : {
+        rectangle : {
             get : function() {
-                return this._tilingScheme.extent;
+                return this._tilingScheme.rectangle;
             }
         },
 
@@ -169,18 +170,30 @@ define([
             get : function() {
                 return undefined;
             }
+        },
+
+        /**
+         * Gets a value indicating whether or not the images provided by this imagery provider
+         * include an alpha channel.  If this property is false, an alpha channel, if present, will
+         * be ignored.  If this property is true, any images without an alpha channel will be treated
+         * as if their alpha is 1.0 everywhere.  Setting this property to false reduces memory usage
+         * and texture upload time.
+         * @memberof TileCoordinatesImageryProvider.prototype
+         * @type {Boolean}
+         */
+        hasAlphaChannel : {
+            get : function() {
+                return true;
+            }
         }
     });
 
     /**
      * Gets the credits to be displayed when a given tile is displayed.
      *
-     * @memberof TileCoordinatesImageryProvider
-     *
      * @param {Number} x The tile X coordinate.
      * @param {Number} y The tile Y coordinate.
      * @param {Number} level The tile level;
-     *
      * @returns {Credit[]} The credits to be displayed when the tile is displayed.
      *
      * @exception {DeveloperError} <code>getTileCredits</code> must not be called before the imagery provider is ready.
@@ -193,12 +206,9 @@ define([
      * Requests the image for a given tile.  This function should
      * not be called before {@link TileCoordinatesImageryProvider#ready} returns true.
      *
-     * @memberof TileCoordinatesImageryProvider
-     *
      * @param {Number} x The tile X coordinate.
      * @param {Number} y The tile Y coordinate.
      * @param {Number} level The tile level.
-     *
      * @returns {Promise} A promise for the image that will resolve when the image is available, or
      *          undefined if there are too many active requests to the server, and the request
      *          should be retried later.  The resolved image may be either an
@@ -225,6 +235,24 @@ define([
         context.fillText(label, 124, 124);
 
         return canvas;
+    };
+
+    /**
+     * Picking features is not currently supported by this imagery provider, so this function simply returns
+     * undefined.
+     *
+     * @param {Number} x The tile X coordinate.
+     * @param {Number} y The tile Y coordinate.
+     * @param {Number} level The tile level.
+     * @param {Number} longitude The longitude at which to pick features.
+     * @param {Number} latitude  The latitude at which to pick features.
+     * @return {Promise} A promise for the picked features that will resolve when the asynchronous
+     *                   picking completes.  The resolved value is an array of {@link ImageryLayerFeatureInfo}
+     *                   instances.  The array may be empty if no features are found at the given location.
+     *                   It may also be undefined if picking is not supported.
+     */
+    TileCoordinatesImageryProvider.prototype.pickFeatures = function() {
+        return undefined;
     };
 
     return TileCoordinatesImageryProvider;

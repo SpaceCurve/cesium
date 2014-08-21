@@ -1,12 +1,12 @@
 /*global define*/
 define([
+        '../ThirdParty/when',
         './loadBlob',
-        './loadImage',
-        '../ThirdParty/when'
+        './loadImage'
     ], function(
+        when,
         loadBlob,
-        loadImage,
-        when) {
+        loadImage) {
     "use strict";
 
     var dataUriRegex = /^data:/;
@@ -26,18 +26,17 @@ define([
      * @exports loadImageViaBlob
      *
      * @param {String|Promise} url The source of the image, or a promise for the URL.
-     *
      * @returns {Promise} a promise that will resolve to the requested data when loaded.
      *
-     * @see <a href='http://www.w3.org/TR/cors/'>Cross-Origin Resource Sharing</a>
-     * @see <a href='http://wiki.commonjs.org/wiki/Promises/A'>CommonJS Promises/A</a>
+     * @see {@link http://www.w3.org/TR/cors/|Cross-Origin Resource Sharing}
+     * @see {@link http://wiki.commonjs.org/wiki/Promises/A|CommonJS Promises/A}
      *
      * @example
      * // load a single image asynchronously
      * Cesium.loadImageViaBlob('some/image/url.png').then(function(image) {
      *     var blob = image.blob;
      *     // use the loaded image or XHR
-     * }, function(error) {
+     * }.otherwise(function(error) {
      *     // an error occurred
      * });
      *

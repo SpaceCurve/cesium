@@ -1,41 +1,40 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/ViewportQuad',
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Specs/createCamera',
-         'Specs/createFrameState',
-         'Specs/frameState',
-         'Specs/render',
-         'Core/BoundingRectangle',
-         'Core/Color',
-         'Renderer/ClearCommand',
-         'Scene/Material'
-     ], function(
-         ViewportQuad,
-         createContext,
-         destroyContext,
-         createCamera,
-         createFrameState,
-         frameState,
-         render,
-         BoundingRectangle,
-         Color,
-         ClearCommand,
-         Material) {
+        'Scene/ViewportQuad',
+        'Core/BoundingRectangle',
+        'Core/Color',
+        'Renderer/ClearCommand',
+        'Scene/Material',
+        'Specs/createCamera',
+        'Specs/createContext',
+        'Specs/createFrameState',
+        'Specs/destroyContext',
+        'Specs/render'
+    ], function(
+        ViewportQuad,
+        BoundingRectangle,
+        Color,
+        ClearCommand,
+        Material,
+        createCamera,
+        createContext,
+        createFrameState,
+        destroyContext,
+        render) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
     var context;
+    var frameState;
     var viewportQuad;
     var us;
     var testImage;
 
     beforeAll(function() {
         context = createContext();
+        frameState = createFrameState();
         testImage = new Image();
         testImage.src = './Data/Images/Red16x16.png';
-
     });
 
     afterAll(function() {
@@ -46,8 +45,8 @@ defineSuite([
         viewportQuad = new ViewportQuad();
         viewportQuad.rectangle = new BoundingRectangle(0, 0, 2, 2);
 
-        us = context.getUniformState();
-        us.update(context, createFrameState(createCamera(context)));
+        us = context.uniformState;
+        us.update(context, createFrameState(createCamera()));
     });
 
     afterEach(function() {

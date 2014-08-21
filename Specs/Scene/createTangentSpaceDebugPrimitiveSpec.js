@@ -1,20 +1,18 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/createTangentSpaceDebugPrimitive',
-         'Core/EllipsoidGeometry',
-         'Core/Cartesian3',
-         'Core/Ellipsoid',
-         'Core/Matrix4',
-         'Core/VertexFormat',
-         'Core/PrimitiveType'
-     ], function(
-         createTangentSpaceDebugPrimitive,
-         EllipsoidGeometry,
-         Cartesian3,
-         Ellipsoid,
-         Matrix4,
-         VertexFormat,
-         PrimitiveType) {
+        'Scene/createTangentSpaceDebugPrimitive',
+        'Core/Cartesian3',
+        'Core/EllipsoidGeometry',
+        'Core/Matrix4',
+        'Core/PrimitiveType',
+        'Core/VertexFormat'
+    ], function(
+        createTangentSpaceDebugPrimitive,
+        Cartesian3,
+        EllipsoidGeometry,
+        Matrix4,
+        PrimitiveType,
+        VertexFormat) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -24,7 +22,7 @@ defineSuite([
             vertexFormat : VertexFormat.ALL,
             radii : new Cartesian3(500000.0, 500000.0, 1000000.0)
         });
-        var modelMatrix = Matrix4.multiplyByTranslation(Matrix4.IDENTITY, new Cartesian3(0.0, 0.0, 11000000.0));
+        var modelMatrix = Matrix4.multiplyByTranslation(Matrix4.IDENTITY, new Cartesian3(0.0, 0.0, 11000000.0), new Matrix4());
 
         var primitive = createTangentSpaceDebugPrimitive({
             geometry : geometry,

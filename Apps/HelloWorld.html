@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Use correct character set. -->
+  <meta charset="utf-8">
+  <!-- Tell IE to use the latest, best version (or Chrome Frame if pre-IE11). -->
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <!-- Make the application on mobile take up the full browser screen and disable user scaling. -->
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
   <title>Hello World!</title>
   <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
@@ -52,6 +58,7 @@
           padding: 0;
           margin: 0;
           overflow: hidden;
+          height: 100%;
       }
   </style>
   <script>
@@ -216,7 +223,6 @@
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
 
       var socket = io.connect();
-<<<<<<< HEAD
 
   function LoadState(loader) {
     this.loader = loader;
@@ -246,8 +252,6 @@
       var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
 
       var socket = io.connect();
-=======
->>>>>>> 33d8be10c949974a626f6199785ccd7c7caa2676
       var streams = [];
 
       var atlas = cesiumWidget.scene.getContext().createTextureAtlas();
@@ -277,12 +281,9 @@
           var pickedObject = cesiumWidget.scene.pick(movement.endPosition);
           if(pickedObject && pickedObject.properties) {
             var text = "";
-<<<<<<< HEAD
             for(var key in pickedObject.dynamicObject.geoJson.properties) {
               var val = pickedObject.dynamicObject.geoJson.properties[key];
               text += escapeHtml(key) + ": " + val + "<br/>";
-=======
->>>>>>> 33d8be10c949974a626f6199785ccd7c7caa2676
             for(var key in pickedObject.properties) {
               var val = pickedObject.properties[key];
               text += escapeHtml(key) + ": " + escapeHtml(val) + "<br/>";

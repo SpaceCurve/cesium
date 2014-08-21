@@ -14,14 +14,13 @@ define([
      * values that, when converted to 32-bit floating-point and added, approximate the original input.
      * <p>
      * This is used to encode positions in vertex buffers for rendering without jittering artifacts
-     * as described in <a href="http://blogs.agi.com/insight3d/index.php/2008/09/03/precisions-precisions/">Precisions, Precisions</a>.
+     * as described in {@link http://blogs.agi.com/insight3d/index.php/2008/09/03/precisions-precisions/|Precisions, Precisions}.
      * </p>
      *
      * @alias EncodedCartesian3
      * @constructor
      *
-     * @see czm_modelViewRelativeToEye
-     * @see czm_modelViewProjectionRelativeToEye
+     * @private
      */
     var EncodedCartesian3 = function() {
         /**
@@ -52,13 +51,11 @@ define([
      * 32-bit floating-point and added, approximate the original input.  The returned object
      * has <code>high</code> and <code>low</code> properties for the high and low bits, respectively.
      * <p>
-     * The fixed-point encoding follows <a href="http://blogs.agi.com/insight3d/index.php/2008/09/03/precisions-precisions/">Precisions, Precisions</a>.
+     * The fixed-point encoding follows {@link http://blogs.agi.com/insight3d/index.php/2008/09/03/precisions-precisions/|Precisions, Precisions}.
      * </p>
-     * @memberof EncodedCartesian3
      *
      * @param {Number} value The floating-point value to encode.
      * @param {Object} [result] The object onto which to store the result.
-     *
      * @returns {Object} The modified result parameter or a new instance if one was not provided.
      *
      * @example
@@ -102,9 +99,8 @@ define([
      * Encodes a {@link Cartesian3} with 64-bit floating-point components as two {@link Cartesian3}
      * values that, when converted to 32-bit floating-point and added, approximate the original input.
      * <p>
-     * The fixed-point encoding follows <a href="http://blogs.agi.com/insight3d/index.php/2008/09/03/precisions-precisions/">Precisions, Precisions</a>.
+     * The fixed-point encoding follows {@link http://blogs.agi.com/insight3d/index.php/2008/09/03/precisions-precisions/|Precisions, Precisions}.
      * </p>
-     * @memberof EncodedCartesian3
      *
      * @param {Cartesian3} cartesian The cartesian to encode.
      * @param {EncodedCartesian3} [result] The object onto which to store the result.
@@ -153,7 +149,7 @@ define([
      * </p>
      *
      * @param {Cartesian3} cartesian The cartesian to encode.
-     * @param {Array} cartesianArray The array to write to.
+     * @param {Number[]} cartesianArray The array to write to.
      * @param {Number} index The index into the array to start writing.  Six elements will be written.
      *
      * @exception {DeveloperError} index must be a number greater than or equal to 0.

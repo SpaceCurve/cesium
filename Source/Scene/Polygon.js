@@ -1,30 +1,32 @@
 /*global define*/
 define([
-        '../Core/DeveloperError',
+        '../Core/Color',
         '../Core/defaultValue',
         '../Core/defined',
-        '../Core/Color',
+        '../Core/defineProperties',
         '../Core/destroyObject',
-        '../Core/Math',
+        '../Core/DeveloperError',
         '../Core/Ellipsoid',
         '../Core/GeometryInstance',
+        '../Core/Math',
         '../Core/PolygonGeometry',
         './EllipsoidSurfaceAppearance',
-        './Primitive',
-        './Material'
+        './Material',
+        './Primitive'
     ], function(
-        DeveloperError,
+        Color,
         defaultValue,
         defined,
-        Color,
+        defineProperties,
         destroyObject,
-        CesiumMath,
+        DeveloperError,
         Ellipsoid,
         GeometryInstance,
+        CesiumMath,
         PolygonGeometry,
         EllipsoidSurfaceAppearance,
-        Primitive,
-        Material) {
+        Material,
+        Primitive) {
     "use strict";
 
     /**
@@ -33,20 +35,23 @@ define([
      * @alias Polygon
      * @constructor
      *
+     * @param {Object} [options] Object with the following properties:
      * @param {Ellipsoid} [options.ellipsoid=Ellipsoid.WGS84] The ellipsoid that the polygon is drawn on.
-     * @param {Array} [options.positions=undefined] The cartesian positions of the polygon.
-     * @param {Object} [options.polygonHierarchy=undefined] An object defining the vertex positions of each nested polygon as defined in {@link Polygon#configureFromPolygonHierarchy}.
+     * @param {Cartesian3[]} [options.positions] The cartesian positions of the polygon.
+     * @param {Object} [options.polygonHierarchy] An object defining the vertex positions of each nested polygon as defined in {@link Polygon#configureFromPolygonHierarchy}.
      * @param {Number} [options.granularity=CesiumMath.RADIANS_PER_DEGREE] The distance, in radians, between each latitude and longitude in the underlying geometry.
-     * @param {Number} [options.height=0.0] The height, in meters, that the extent is raised above the {@link ExtentPrimitive#ellipsoid}.
+     * @param {Number} [options.height=0.0] The height, in meters, that the rectangle is raised above the {@link Polygon#ellipsoid}.
      * @param {Number} [options.textureRotationAngle=0.0] The rotation of the texture coordinates, in radians. A positive rotation is counter-clockwise.
      * @param {Boolean} [options.show=true] Determines if this primitive will be shown.
-     * @param {Material} [options.material=undefined] The surface appearance of the primitive.
-     * @param {Object} [options.id=undefined] A user-defined object to return when the instance is picked with {@link Scene#pick}
+     * @param {Material} [options.material] The surface appearance of the primitive.
+     * @param {Object} [options.id] A user-defined object to return when the instance is picked with {@link Scene#pick}
      * @param {Boolean} [options.asynchronous=true] Determines if the primitive will be created asynchronously or block until ready.
      * @param {Boolean} [options.debugShowBoundingVolume=false] For debugging only. Determines if the primitive's commands' bounding spheres are shown.
      *
      * @exception {DeveloperError} Either options.positions or options.polygonHierarchy can be provided, but not both.
      * @exception {DeveloperError} When options.positions is provided, at least three positions are required.
+     *
+     * @demo {@link http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Polygons.html|Cesium Sandcastle Polygons Demo}
      *
      * @example
      * // Example 1
@@ -58,6 +63,7 @@ define([
      *   ]
      * });
      *
+     * @example
      * // Example 2
      * var polygon = new Cesium.Polygon();
      * polygon.material.uniforms.color = {
@@ -66,13 +72,9 @@ define([
      *   blue  : 0.0,
      *   alpha : 1.0
      * };
-     * polygon.setPositions([
+     * polygon.positions = [ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
      *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...))
-     * ]);
-     *
-     * @demo <a href="http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Polygons.html">Cesium Sandcastle Polygons Demo</a>
+     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...))];
      */
     var Polygon = function(options) {
         options = defaultValue(options, defaultValue.EMPTY_OBJECT);
@@ -134,7 +136,7 @@ define([
 
         /**
          * The surface appearance of the primitive.  This can be one of several built-in {@link Material} objects or a custom material, scripted with
-         * <a href='https://github.com/AnalyticalGraphicsInc/cesium/wiki/Fabric'>Fabric</a>.
+         * {@link https://github.com/AnalyticalGraphicsInc/cesium/wiki/Fabric|Fabric}.
          * <p>
          * The default material is <code>Material.ColorType</code>.
          * </p>
@@ -142,14 +144,14 @@ define([
          * @type {Material}
          * @default Material.fromType(Material.ColorType)
          *
+         * @see {@link https://github.com/AnalyticalGraphicsInc/cesium/wiki/Fabric|Fabric}
+         *
          * @example
          * // 1. Change the color of the default material to yellow
          * polygon.material.uniforms.color = new Cesium.Color(1.0, 1.0, 0.0, 1.0);
          *
          * // 2. Change material to horizontal stripes
          * polygon.material = Cesium.Material.fromType( Material.StripeType);
-         *
-         * @see <a href='https://github.com/AnalyticalGraphicsInc/cesium/wiki/Fabric'>Fabric</a>
          */
         this.material = defaultValue(options.material, material);
 
@@ -178,7 +180,7 @@ define([
         /**
          * This property is for debugging only; it is not for production use nor is it optimized.
          * <p>
-         * Draws the bounding sphere for each {@link DrawCommand} in the primitive.
+         * Draws the bounding sphere for each draw command in the primitive.
          * </p>
          *
          * @type {Boolean}
@@ -199,63 +201,46 @@ define([
         //>>includeEnd('debug');
 
         if (defined(options.positions)) {
-            this.setPositions(options.positions);
+            this.positions = options.positions;
         } else if (defined(options.polygonHierarchy)) {
             this.configureFromPolygonHierarchy(options.polygonHierarchy);
         }
     };
 
-    /**
-     * Returns the positions that define the boundary of the polygon.  If {@link Polygon#configureFromPolygonHierarchy}
-     * was used, this returns <code>undefined</code>.
-     *
-     * @memberof Polygon
-     *
-     * @exception {DeveloperError} This object was destroyed, i.e., destroy() was called.
-     *
-     * @see Polygon#setPositions
-     */
-    Polygon.prototype.getPositions = function() {
-        return this._positions;
-    };
+    defineProperties(Polygon.prototype, {
+        /**
+         * Gets or sets positions that define the boundary of the polygon.
+         * @memberof Polygon.prototype
+         * @type {Cartesian3[]}
+         * @example
+         * polygon.positions = [
+         *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+         *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
+         *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...))
+         * ];
+         */
+        positions: {
+            get : function() {
+                return this._positions;
+            },
+            set : function(positions) {
+                // positions can be undefined
 
-    /**
-     * Sets positions that define the boundary of the polygon.
-     *
-     * @memberof Polygon
-     *
-     * @exception {DeveloperError} At least three positions are required.
-     * @exception {DeveloperError} This object was destroyed, i.e., destroy() was called.
-     *
-     * @see Polygon#getPositions
-     *
-     * @param {Array} positions The cartesian positions of the polygon.
-     *
-     * @example
-     * polygon.setPositions([
-     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...)),
-     *   ellipsoid.cartographicToCartesian(new Cesium.Cartographic(...))
-     * ]);
-     */
-    Polygon.prototype.setPositions = function(positions) {
-        // positions can be undefined
+                //>>includeStart('debug', pragmas.debug);
+                if (defined(positions) && (positions.length < 3)) {
+                    throw new DeveloperError('At least three positions are required.');
+                }
+                //>>includeEnd('debug');
 
-        //>>includeStart('debug', pragmas.debug);
-        if (defined(positions) && (positions.length < 3)) {
-            throw new DeveloperError('At least three positions are required.');
+                this._positions = positions;
+                this._polygonHierarchy = undefined;
+                this._createPrimitive = true;
+            }
         }
-        //>>includeEnd('debug');
-
-        this._positions = positions;
-        this._polygonHierarchy = undefined;
-        this._createPrimitive = true;
-    };
+    });
 
     /**
      * Create a set of polygons with holes from a nested hierarchy.
-     *
-     * @memberof Polygon
      *
      * @param {Object} hierarchy An object defining the vertex positions of each nested polygon.
      * For example, the following polygon has two holes, and one hole has a hole. <code>holes</code> is optional.
@@ -307,7 +292,16 @@ define([
     };
 
     /**
-     * @private
+     * Called when {@link Viewer} or {@link CesiumWidget} render the scene to
+     * get the draw commands needed to render this primitive.
+     * <p>
+     * Do not call this function directly.  This is documented just to
+     * list the exceptions that may be propagated when the scene is rendered:
+     * </p>
+     *
+     * @exception {DeveloperError} this.ellipsoid must be defined.
+     * @exception {DeveloperError} this.material must be defined.
+     * @exception {DeveloperError} this.granularity must be defined.
      */
     Polygon.prototype.update = function(context, frameState, commandList) {
         //>>includeStart('debug', pragmas.debug);
@@ -318,7 +312,7 @@ define([
             throw new DeveloperError('this.material must be defined.');
         }
         if (this.granularity < 0.0) {
-            throw new DeveloperError('this.granularity and scene2D/scene3D overrides must be greater than zero.');
+            throw new DeveloperError('this.granularity must be greater than zero.');
         }
         //>>includeEnd('debug');
 
@@ -401,8 +395,6 @@ define([
      * If this object was destroyed, it should not be used; calling any function other than
      * <code>isDestroyed</code> will result in a {@link DeveloperError} exception.
      *
-     * @memberof Polygon
-     *
      * @returns {Boolean} <code>true</code> if this object was destroyed; otherwise, <code>false</code>.
      *
      * @see Polygon#destroy
@@ -419,16 +411,14 @@ define([
      * <code>isDestroyed</code> will result in a {@link DeveloperError} exception.  Therefore,
      * assign the return value (<code>undefined</code>) to the object as done in the example.
      *
-     * @memberof Polygon
-     *
      * @returns {undefined}
      *
      * @exception {DeveloperError} This object was destroyed, i.e., destroy() was called.
      *
-     * @see Polygon#isDestroyed
-     *
      * @example
      * polygon = polygon && polygon.destroy();
+     *
+     * @see Polygon#isDestroyed
      */
     Polygon.prototype.destroy = function() {
         this._primitive = this._primitive && this._primitive.destroy();

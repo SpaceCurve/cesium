@@ -3,14 +3,14 @@ define([
         'Core/defaultValue',
         'Core/defined',
         'Core/Intersect',
-        'Renderer/Pass',
+        'Scene/Pass',
         'Scene/SceneMode'
-     ], function(
-         defaultValue,
-         defined,
-         Intersect,
-         Pass,
-         SceneMode) {
+    ], function(
+        defaultValue,
+        defined,
+        Intersect,
+        Pass,
+        SceneMode) {
     "use strict";
 
     function executeCommands(context, frameState, commands) {
@@ -26,7 +26,7 @@ define([
             var command = commands[i];
             var boundingVolume = command.boundingVolume;
             if (defined(boundingVolume)) {
-                if (cullingVolume.getVisibility(boundingVolume) === Intersect.OUTSIDE ||
+                if (cullingVolume.computeVisibility(boundingVolume) === Intersect.OUTSIDE ||
                         (defined(occluder) && !occluder.isBoundingSphereVisible(boundingVolume))) {
                     continue;
                 }

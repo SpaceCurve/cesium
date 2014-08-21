@@ -1,18 +1,18 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/DebugModelMatrixPrimitive',
-         'Specs/createScene',
-         'Specs/destroyScene',
-         'Core/Cartesian2',
-         'Core/Cartesian3',
-         'Core/Matrix4'
-     ], function(
-         DebugModelMatrixPrimitive,
-         createScene,
-         destroyScene,
-         Cartesian2,
-         Cartesian3,
-         Matrix4) {
+        'Scene/DebugModelMatrixPrimitive',
+        'Core/Cartesian2',
+        'Core/Cartesian3',
+        'Core/Matrix4',
+        'Specs/createScene',
+        'Specs/destroyScene'
+    ], function(
+        DebugModelMatrixPrimitive,
+        Cartesian2,
+        Cartesian3,
+        Matrix4,
+        createScene,
+        destroyScene) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -22,7 +22,7 @@ defineSuite([
         scene = createScene();
         var camera = scene.camera;
         camera.position = new Cartesian3(1.02, 0.0, 0.0);
-        camera.direction = Cartesian3.negate(Cartesian3.UNIT_X);
+        camera.direction = Cartesian3.negate(Cartesian3.UNIT_X, new Cartesian3());
         camera.up = Cartesian3.clone(Cartesian3.UNIT_Z);
     });
 

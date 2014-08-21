@@ -191,7 +191,7 @@ define([
     var rotMatrix = new Matrix3();
     function computeRoundCorner(pivot, startPoint, endPoint, cornerType, leftIsOutside, ellipsoid, finalPositions, shape, height, duplicatePoints) {
         var angle = Cartesian3.angleBetween(Cartesian3.subtract(startPoint, pivot, scratch1), Cartesian3.subtract(endPoint, pivot, scratch2));
-        var granularity = (cornerType.value === CornerType.BEVELED.value) ? 0 : Math.ceil(angle / CesiumMath.toRadians(5));
+        var granularity = (cornerType === CornerType.BEVELED) ? 0 : Math.ceil(angle / CesiumMath.toRadians(5));
 
         var m;
         if (leftIsOutside) {
@@ -351,12 +351,16 @@ define([
                     scratch2Array[0] = Cartesian3.clone(previousPosition, scratch2Array[0]);
                     scratch2Array[1] = Cartesian3.clone(start, scratch2Array[1]);
                     subdividedHeights = subdivideHeights(scratch2Array, h0 + heightOffset, h1 + heightOffset, granularity);
-                    subdividedPositions = PolylinePipeline.scaleToSurface(scratch2Array);
+                    subdividedPositions = PolylinePipeline.generateArc({
+                        positions: scratch2Array,
+                        granularity: granularity,
+                        ellipsoid: ellipsoid
+                    });
                     finalPositions = addPositions(subdividedPositions, left, shapeForSides, finalPositions, ellipsoid, subdividedHeights, 1);
                     left = Cartesian3.cross(surfaceNormal, forward, left);
                     left = Cartesian3.normalize(left, left);
                     end = Cartesian3.add(pivot, Cartesian3.multiplyByScalar(left, width, end), end);
-                    if (cornerType.value === CornerType.ROUNDED.value || cornerType.value === CornerType.BEVELED.value) {
+                    if (cornerType === CornerType.ROUNDED || cornerType === CornerType.BEVELED) {
                         computeRoundCorner(pivot, start, end, cornerType, leftIsOutside, ellipsoid, finalPositions, shapeForSides, h1 + heightOffset, duplicatePoints);
                     } else {
                         cornerDirection = Cartesian3.negate(cornerDirection, cornerDirection);
@@ -369,12 +373,16 @@ define([
                     scratch2Array[0] = Cartesian3.clone(previousPosition, scratch2Array[0]);
                     scratch2Array[1] = Cartesian3.clone(start, scratch2Array[1]);
                     subdividedHeights = subdivideHeights(scratch2Array, h0 + heightOffset, h1 + heightOffset, granularity);
-                    subdividedPositions = PolylinePipeline.scaleToSurface(scratch2Array, granularity, ellipsoid);
+                    subdividedPositions = PolylinePipeline.generateArc({
+                        positions: scratch2Array,
+                        granularity: granularity,
+                        ellipsoid: ellipsoid
+                    });
                     finalPositions = addPositions(subdividedPositions, left, shapeForSides, finalPositions, ellipsoid, subdividedHeights, 1);
                     left = Cartesian3.cross(surfaceNormal, forward, left);
                     left = Cartesian3.normalize(left, left);
                     end = Cartesian3.add(pivot, Cartesian3.multiplyByScalar(left, -width, end), end);
-                    if (cornerType.value === CornerType.ROUNDED.value || cornerType.value === CornerType.BEVELED.value) {
+                    if (cornerType === CornerType.ROUNDED || cornerType === CornerType.BEVELED) {
                         computeRoundCorner(pivot, start, end, cornerType, leftIsOutside, ellipsoid, finalPositions, shapeForSides, h1 + heightOffset, duplicatePoints);
                     } else {
                         finalPositions = addPosition(position, cornerDirection, shapeForSides, finalPositions, ellipsoid, h1 + heightOffset, scalar, repeat);
@@ -394,7 +402,11 @@ define([
         scratch2Array[0] = Cartesian3.clone(previousPosition, scratch2Array[0]);
         scratch2Array[1] = Cartesian3.clone(position, scratch2Array[1]);
         subdividedHeights = subdivideHeights(scratch2Array, h0 + heightOffset, h1 + heightOffset, granularity);
-        subdividedPositions = PolylinePipeline.scaleToSurface(scratch2Array, granularity, ellipsoid);
+        subdividedPositions = PolylinePipeline.generateArc({
+            positions: scratch2Array,
+            granularity: granularity,
+            ellipsoid: ellipsoid
+        });
         finalPositions = addPositions(subdividedPositions, left, shapeForSides, finalPositions, ellipsoid, subdividedHeights, 1);
         if (duplicatePoints) {
             ends = addPosition(position, left, shapeForEnds, ends, ellipsoid, h1 + heightOffset, 1, 1);

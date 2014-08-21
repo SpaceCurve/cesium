@@ -1,8 +1,8 @@
 /*global defineSuite*/
 defineSuite([
-             'Core/LinearApproximation'
-            ], function(
-             LinearApproximation) {
+        'Core/LinearApproximation'
+    ], function(
+        LinearApproximation) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -72,11 +72,5 @@ defineSuite([
 
     it('getRequiredDataPoints returns 2', function() {
         expect(LinearApproximation.getRequiredDataPoints(1)).toEqual(2);
-    });
-
-    it('getRequiredDataPoints throws if other than 1', function() {
-        expect(function() {
-            LinearApproximation.getRequiredDataPoints(2);
-        }).toThrowDeveloperError();
     });
 });

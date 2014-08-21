@@ -2,19 +2,21 @@
 define([
         './defined',
         './DeveloperError',
+        './freezeObject',
         './Math'
     ], function(
         defined,
         DeveloperError,
+        freezeObject,
         CesiumMath) {
     "use strict";
 
     /**
      * Constants for WebGL index datatypes.  These corresponds to the
-     * <code>type</code> parameter of <a href="http://www.khronos.org/opengles/sdk/docs/man/xhtml/glDrawElements.xml">drawElements</a>.
+     * <code>type</code> parameter of {@link http://www.khronos.org/opengles/sdk/docs/man/xhtml/glDrawElements.xml|drawElements}.
      *
+     * @namespace
      * @alias IndexDatatype
-     * @enumeration
      */
     var IndexDatatype = {
         /**
@@ -49,7 +51,6 @@ define([
      * Returns the size, in bytes, of the corresponding datatype.
      *
      * @param {IndexDatatype} indexDatatype The index datatype to get the size of.
-     *
      * @returns {Number} The size in bytes.
      *
      * @example
@@ -75,7 +76,6 @@ define([
      * Validates that the provided index datatype is a valid {@link IndexDatatype}.
      *
      * @param {IndexDatatype} indexDatatype The index datatype to validate.
-     *
      * @returns {Boolean} <code>true</code> if the provided index datatype is a valid value; otherwise, <code>false</code>.
      *
      * @example
@@ -96,8 +96,7 @@ define([
      *
      * @param {Number} numberOfVertices Number of vertices that the indices will reference.
      * @param {Any} indicesLengthOrArray Passed through to the typed array constructor.
-     *
-     * @returns {Array} A <code>Uint16Array</code> or <code>Uint32Array</code> constructed with <code>indicesLengthOrArray</code>.
+     * @returns {Uint16Aray|Uint32Array} A <code>Uint16Array</code> or <code>Uint32Array</code> constructed with <code>indicesLengthOrArray</code>.
      *
      * @example
      * this.indices = Cesium.IndexDatatype.createTypedArray(positions.length / 3, numberOfIndices);
@@ -116,5 +115,5 @@ define([
         return new Uint16Array(indicesLengthOrArray);
     };
 
-    return IndexDatatype;
+    return freezeObject(IndexDatatype);
 });

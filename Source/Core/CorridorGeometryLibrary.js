@@ -1,22 +1,24 @@
 /*global define*/
 define([
-        './defined',
         './Cartesian3',
         './CornerType',
+        './defined',
+        './isArray',
+        './Math',
+        './Matrix3',
         './PolylinePipeline',
         './PolylineVolumeGeometryLibrary',
-        './Matrix3',
-        './Quaternion',
-        './Math'
+        './Quaternion'
     ], function(
-        defined,
         Cartesian3,
         CornerType,
+        defined,
+        isArray,
+        CesiumMath,
+        Matrix3,
         PolylinePipeline,
         PolylineVolumeGeometryLibrary,
-        Matrix3,
-        Quaternion,
-        CesiumMath) {
+        Quaternion) {
     "use strict";
 
     /**
@@ -46,7 +48,7 @@ define([
     var rotMatrix = new Matrix3();
     function computeRoundCorner(cornerPoint, startPoint, endPoint, cornerType, leftIsOutside) {
         var angle = Cartesian3.angleBetween(Cartesian3.subtract(startPoint, cornerPoint, scratch1), Cartesian3.subtract(endPoint, cornerPoint, scratch2));
-        var granularity = (cornerType.value === CornerType.BEVELED.value) ? 1 : Math.ceil(angle / CesiumMath.toRadians(5)) + 1;
+        var granularity = (cornerType === CornerType.BEVELED) ? 1 : Math.ceil(angle / CesiumMath.toRadians(5)) + 1;
 
         var size = granularity * 3;
         var array = new Array(size);
@@ -218,7 +220,11 @@ define([
                     leftPos = Cartesian3.add(rightPos, Cartesian3.multiplyByScalar(left, width * 2, leftPos), leftPos);
                     scaleArray2[0] = Cartesian3.clone(previousPos, scaleArray2[0]);
                     scaleArray2[1] = Cartesian3.clone(center, scaleArray2[1]);
-                    subdividedPositions = PolylinePipeline.scaleToSurface(scaleArray2, granularity, ellipsoid);
+                    subdividedPositions = PolylinePipeline.generateArc({
+                        positions: scaleArray2,
+                        granularity: granularity,
+                        ellipsoid: ellipsoid
+                    });
                     calculatedPositions = addShiftedPositions(subdividedPositions, left, width, calculatedPositions);
                     if (saveAttributes) {
                         calculatedLefts.push(left.x, left.y, left.z);
@@ -228,7 +234,7 @@ define([
                     left = Cartesian3.normalize(Cartesian3.cross(normal, forward, left), left);
                     leftPos = Cartesian3.add(rightPos, Cartesian3.multiplyByScalar(left, width * 2, leftPos), leftPos);
                     previousPos = Cartesian3.add(rightPos, Cartesian3.multiplyByScalar(left, width, previousPos), previousPos);
-                    if (cornerType.value === CornerType.ROUNDED.value || cornerType.value === CornerType.BEVELED.value) {
+                    if (cornerType === CornerType.ROUNDED || cornerType === CornerType.BEVELED) {
                         corners.push({
                             leftPositions : computeRoundCorner(rightPos, startPoint, leftPos, cornerType, leftIsOutside)
                         });
@@ -243,7 +249,11 @@ define([
                     rightPos = Cartesian3.add(leftPos, Cartesian3.negate(Cartesian3.multiplyByScalar(left, width * 2, rightPos), rightPos), rightPos);
                     scaleArray2[0] = Cartesian3.clone(previousPos, scaleArray2[0]);
                     scaleArray2[1] = Cartesian3.clone(center, scaleArray2[1]);
-                    subdividedPositions = PolylinePipeline.scaleToSurface(scaleArray2, granularity, ellipsoid);
+                    subdividedPositions = PolylinePipeline.generateArc({
+                        positions: scaleArray2,
+                        granularity: granularity,
+                        ellipsoid: ellipsoid
+                    });
                     calculatedPositions = addShiftedPositions(subdividedPositions, left, width, calculatedPositions);
                     if (saveAttributes) {
                         calculatedLefts.push(left.x, left.y, left.z);
@@ -253,7 +263,7 @@ define([
                     left = Cartesian3.normalize(Cartesian3.cross(normal, forward, left), left);
                     rightPos = Cartesian3.add(leftPos, Cartesian3.negate(Cartesian3.multiplyByScalar(left, width * 2, rightPos), rightPos), rightPos);
                     previousPos = Cartesian3.add(leftPos, Cartesian3.negate(Cartesian3.multiplyByScalar(left, width, previousPos), previousPos), previousPos);
-                    if (cornerType.value === CornerType.ROUNDED.value || cornerType.value === CornerType.BEVELED.value) {
+                    if (cornerType === CornerType.ROUNDED || cornerType === CornerType.BEVELED) {
                         corners.push({
                             rightPositions : computeRoundCorner(leftPos, startPoint, rightPos, cornerType, leftIsOutside)
                         });
@@ -271,7 +281,11 @@ define([
         normal = ellipsoid.geodeticSurfaceNormal(position, normal);
         scaleArray2[0] = Cartesian3.clone(previousPos, scaleArray2[0]);
         scaleArray2[1] = Cartesian3.clone(position, scaleArray2[1]);
-        subdividedPositions = PolylinePipeline.scaleToSurface(scaleArray2, granularity, ellipsoid);
+        subdividedPositions = PolylinePipeline.generateArc({
+            positions: scaleArray2,
+            granularity: granularity,
+            ellipsoid: ellipsoid
+        });
         calculatedPositions = addShiftedPositions(subdividedPositions, left, width, calculatedPositions);
         if (saveAttributes) {
             calculatedLefts.push(left.x, left.y, left.z);
@@ -279,7 +293,7 @@ define([
         }
 
         var endPositions;
-        if (cornerType.value === CornerType.ROUNDED.value) {
+        if (cornerType === CornerType.ROUNDED) {
             endPositions = addEndCaps(calculatedPositions);
         }
 
@@ -290,6 +304,31 @@ define([
             normals : calculatedNormals,
             endPositions : endPositions
         };
+    };
+
+    var scaleN = new Cartesian3();
+    var scaleP = new Cartesian3();
+    CorridorGeometryLibrary.scaleToGeodeticHeight = function(positions, height, ellipsoid, result) {
+        var length = positions.length;
+        var newPositions = isArray(result) ? result : new Array(positions.length);
+        newPositions.length = positions.length;
+
+        var h = height;
+        for (var i = 0; i < length; i += 3) {
+            var p = ellipsoid.scaleToGeodeticSurface(Cartesian3.fromArray(positions, i, scaleP), scaleP);
+            var n = scaleN;
+            if (height !== 0.0) {
+                n = ellipsoid.geodeticSurfaceNormal(p, n);
+                n = Cartesian3.multiplyByScalar(n, h, n);
+                p = Cartesian3.add(p, n, p);
+            }
+
+            newPositions[i] = p.x;
+            newPositions[i + 1] = p.y;
+            newPositions[i + 2] = p.z;
+        }
+
+        return newPositions;
     };
 
     return CorridorGeometryLibrary;

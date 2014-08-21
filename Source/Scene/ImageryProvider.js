@@ -2,16 +2,16 @@
 define([
         '../Core/defined',
         '../Core/defineProperties',
+        '../Core/DeveloperError',
         '../Core/loadImage',
         '../Core/loadImageViaBlob',
-        '../Core/DeveloperError',
         '../Core/throttleRequestByServer'
     ], function(
         defined,
         defineProperties,
+        DeveloperError,
         loadImage,
         loadImageViaBlob,
-        DeveloperError,
         throttleRequestByServer) {
     "use strict";
 
@@ -27,20 +27,16 @@ define([
      * @see BingMapsImageryProvider
      * @see GoogleEarthImageryProvider
      * @see OpenStreetMapImageryProvider
+     * @see WebMapTileServiceImageryProvider
      * @see WebMapServiceImageryProvider
      *
-     * @demo <a href="http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Imagery%20Layers.html">Cesium Sandcastle Imagery Layers Demo</a>
-     * @demo <a href="http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Imagery%20Layers%20Manipulation.html">Cesium Sandcastle Imagery Manipulation Demo</a>
+     * @demo {@link http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Imagery%20Layers.html|Cesium Sandcastle Imagery Layers Demo}
+     * @demo {@link http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Imagery%20Layers%20Manipulation.html|Cesium Sandcastle Imagery Manipulation Demo}
      */
     var ImageryProvider = function ImageryProvider() {
         /**
-         * The default alpha blending value of this provider, usually from 0.0 to 1.0.
-         * This can either be a simple number or a function with the signature
-         * <code>function(frameState, layer, x, y, level)</code>.  The function is passed the
-         * current {@link FrameState}, the layer, and the x, y, and level coordinates of the
-         * imagery tile for which the alpha is required, and it is expected to return
-         * the alpha value to use for the tile.  The function is executed for every
-         * frame and for every tile, so it must be fast.
+         * The default alpha blending value of this provider, with 0.0 representing fully transparent and 
+         * 1.0 representing fully opaque.
          *
          * @type {Number}
          * @default undefined
@@ -50,12 +46,6 @@ define([
         /**
          * The default brightness of this provider.  1.0 uses the unmodified imagery color.  Less than 1.0
          * makes the imagery darker while greater than 1.0 makes it brighter.
-         * This can either be a simple number or a function with the signature
-         * <code>function(frameState, layer, x, y, level)</code>.  The function is passed the
-         * current {@link FrameState}, the layer, and the x, y, and level coordinates of the
-         * imagery tile for which the brightness is required, and it is expected to return
-         * the brightness value to use for the tile.  The function is executed for every
-         * frame and for every tile, so it must be fast.
          *
          * @type {Number}
          * @default undefined
@@ -65,12 +55,6 @@ define([
         /**
          * The default contrast of this provider.  1.0 uses the unmodified imagery color.  Less than 1.0 reduces
          * the contrast while greater than 1.0 increases it.
-         * This can either be a simple number or a function with the signature
-         * <code>function(frameState, layer, x, y, level)</code>.  The function is passed the
-         * current {@link FrameState}, the layer, and the x, y, and level coordinates of the
-         * imagery tile for which the contrast is required, and it is expected to return
-         * the contrast value to use for the tile.  The function is executed for every
-         * frame and for every tile, so it must be fast.
          *
          * @type {Number}
          * @default undefined
@@ -78,12 +62,7 @@ define([
         this.defaultContrast = undefined;
 
         /**
-         * The default hue of this provider in radians. 0.0 uses the unmodified imagery color. This can either be a
-         * simple number or a function with the signature <code>function(frameState, layer, x, y, level)</code>.
-         * The function is passed the current {@link FrameState}, the layer, and the x, y, and level
-         * coordinates of the imagery tile for which the hue is required, and it is expected to return
-         * the hue value to use for the tile.  The function is executed for every
-         * frame and for every tile, so it must be fast.
+         * The default hue of this provider in radians. 0.0 uses the unmodified imagery color.
          *
          * @type {Number}
          * @default undefined
@@ -92,12 +71,7 @@ define([
 
         /**
          * The default saturation of this provider. 1.0 uses the unmodified imagery color. Less than 1.0 reduces the
-         * saturation while greater than 1.0 increases it. This can either be a simple number or a function
-         * with the signature <code>function(frameState, layer, x, y, level)</code>.  The function is passed the
-         * current {@link FrameState}, the layer, and the x, y, and level coordinates of the
-         * imagery tile for which the saturation is required, and it is expected to return
-         * the saturation value to use for the tile.  The function is executed for every
-         * frame and for every tile, so it must be fast.
+         * saturation while greater than 1.0 increases it.
          *
          * @type {Number}
          * @default undefined
@@ -106,12 +80,6 @@ define([
 
         /**
          * The default gamma correction to apply to this provider.  1.0 uses the unmodified imagery color.
-         * This can either be a simple number or a function with the signature
-         * <code>function(frameState, layer, x, y, level)</code>.  The function is passed the
-         * current {@link FrameState}, the layer, and the x, y, and level coordinates of the
-         * imagery tile for which the gamma is required, and it is expected to return
-         * the gamma value to use for the tile.  The function is executed for every
-         * frame and for every tile, so it must be fast.
          *
          * @type {Number}
          * @default undefined
@@ -132,12 +100,12 @@ define([
         },
 
         /**
-         * Gets the extent, in radians, of the imagery provided by the instance.  This function should
+         * Gets the rectangle, in radians, of the imagery provided by the instance.  This function should
          * not be called before {@link ImageryProvider#ready} returns true.
          * @memberof ImageryProvider.prototype
-         * @type {Extent}
+         * @type {Rectangle}
          */
-        extent: {
+        rectangle: {
             get : DeveloperError.throwInstantiationError
         },
 
@@ -174,7 +142,7 @@ define([
         /**
          * Gets the minimum level-of-detail that can be requested.  This function should
          * not be called before {@link ImageryProvider#ready} returns true. Generally,
-         * a minimum level should only be used when the extent of the imagery is small
+         * a minimum level should only be used when the rectangle of the imagery is small
          * enough that the number of tiles at the minimum level is small.  An imagery
          * provider with more than a few tiles at the minimum level will lead to
          * rendering problems.
@@ -236,18 +204,29 @@ define([
          */
         proxy : {
             get : DeveloperError.throwInstantiationError
+        },
+
+        /**
+         * Gets a value indicating whether or not the images provided by this imagery provider
+         * include an alpha channel.  If this property is false, an alpha channel, if present, will
+         * be ignored.  If this property is true, any images without an alpha channel will be treated
+         * as if their alpha is 1.0 everywhere.  When this property is false, memory usage
+         * and texture upload time are reduced.
+         * @memberof ImageryProvider.prototype
+         * @type {Boolean}
+         */
+        hasAlphaChannel : {
+            get : DeveloperError.throwInstantiationError
         }
     });
 
     /**
      * Gets the credits to be displayed when a given tile is displayed.
-     * @memberof ImageryProvider
      * @function
      *
      * @param {Number} x The tile X coordinate.
      * @param {Number} y The tile Y coordinate.
      * @param {Number} level The tile level;
-     *
      * @returns {Credit[]} The credits to be displayed when the tile is displayed.
      *
      * @exception {DeveloperError} <code>getTileCredits</code> must not be called before the imagery provider is ready.
@@ -256,14 +235,12 @@ define([
 
     /**
      * Requests the image for a given tile.  This function should
-     * not be called before {@link ImageryProvider#isReady} returns true.
-     * @memberof ImageryProvider
+     * not be called before {@link ImageryProvider#ready} returns true.
      * @function
      *
      * @param {Number} x The tile X coordinate.
      * @param {Number} y The tile Y coordinate.
      * @param {Number} level The tile level.
-     *
      * @returns {Promise} A promise for the image that will resolve when the image is available, or
      *          undefined if there are too many active requests to the server, and the request
      *          should be retried later.  The resolved image may be either an
@@ -274,12 +251,32 @@ define([
     ImageryProvider.prototype.requestImage = DeveloperError.throwInstantiationError;
 
     /**
+     * Asynchronously determines what features, if any, are located at a given longitude and latitude within
+     * a tile.  This function should not be called before {@link ImageryProvider#ready} returns true.
+     * This function is optional, so it may not exist on all ImageryProviders.
+     * 
+     * @function
+     *
+     * @param {Number} x The tile X coordinate.
+     * @param {Number} y The tile Y coordinate.
+     * @param {Number} level The tile level.
+     * @param {Number} longitude The longitude at which to pick features.
+     * @param {Number} latitude  The latitude at which to pick features.
+     * @return {Promise} A promise for the picked features that will resolve when the asynchronous
+     *                   picking completes.  The resolved value is an array of {@link ImageryLayerFeatureInfo}
+     *                   instances.  The array may be empty if no features are found at the given location.
+     *                   It may also be undefined if picking is not supported.
+     *
+     * @exception {DeveloperError} <code>pickFeatures</code> must not be called before the imagery provider is ready.
+     */
+    ImageryProvider.prototype.pickFeatures = DeveloperError.throwInstantiationError;
+
+    /**
      * Loads an image from a given URL.  If the server referenced by the URL already has
      * too many requests pending, this function will instead return undefined, indicating
      * that the request should be retried later.
-     * @memberof ImageryProvider
      *
-     * @param url {String} The URL of the image.
+     * @param {String} url The URL of the image.
      * @returns {Promise} A promise for the image that will resolve when the image is available, or
      *          undefined if there are too many active requests to the server, and the request
      *          should be retried later.  The resolved image may be either an

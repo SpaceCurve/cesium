@@ -1,14 +1,14 @@
 /*global defineSuite*/
 defineSuite([
-         'Core/Matrix3',
-         'Core/Cartesian3',
-         'Core/Math',
-         'Core/Quaternion'
-     ], function(
-         Matrix3,
-         Cartesian3,
-         CesiumMath,
-         Quaternion) {
+        'Core/Matrix3',
+        'Core/Cartesian3',
+        'Core/Math',
+        'Core/Quaternion'
+    ], function(
+        Matrix3,
+        Cartesian3,
+        CesiumMath,
+        Quaternion) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -44,7 +44,7 @@ defineSuite([
         var sPiOver2 = Math.sin(CesiumMath.PI_OVER_TWO);
         var cPiOver2 = Math.cos(CesiumMath.PI_OVER_TWO);
 
-        var tmp = Cartesian3.multiplyByScalar(new Cartesian3(0.0, 0.0, 1.0), sPiOver4);
+        var tmp = Cartesian3.multiplyByScalar(new Cartesian3(0.0, 0.0, 1.0), sPiOver4, new Cartesian3());
         var quatnerion = new Quaternion(tmp.x, tmp.y, tmp.z, cPiOver4);
         var expected = new Matrix3(cPiOver2, -sPiOver2, 0.0, sPiOver2, cPiOver2, 0.0, 0.0, 0.0, 1.0);
 
@@ -58,7 +58,7 @@ defineSuite([
         var sPiOver2 = Math.sin(CesiumMath.PI_OVER_TWO);
         var cPiOver2 = Math.cos(CesiumMath.PI_OVER_TWO);
 
-        var tmp = Cartesian3.multiplyByScalar(new Cartesian3(0.0, 0.0, 1.0), sPiOver4);
+        var tmp = Cartesian3.multiplyByScalar(new Cartesian3(0.0, 0.0, 1.0), sPiOver4, new Cartesian3());
         var quatnerion = new Quaternion(tmp.x, tmp.y, tmp.z, cPiOver4);
         var expected = new Matrix3(cPiOver2, -sPiOver2, 0.0, sPiOver2, cPiOver2, 0.0, 0.0, 0.0, 1.0);
         var result = new Matrix3();
@@ -108,6 +108,53 @@ defineSuite([
         var returnedResult = Matrix3.fromUniformScale(2.0, result);
         expect(returnedResult).toBe(result);
         expect(returnedResult).toEqual(expected);
+    });
+
+    it('fromCrossProduct works without a result parameter', function() {
+        var expected = new Matrix3(
+                0.0, -3.0, -2.0,
+                3.0,  0.0, -1.0,
+                2.0,  1.0,  0.0);
+        var left = new Cartesian3(1.0, -2.0, 3.0);
+        var returnedResult = Matrix3.fromCrossProduct(left);
+        expect(returnedResult).toNotBe(expected);
+        expect(returnedResult).toEqual(expected);
+
+        var right = new Cartesian3(2.0, 3.0, 4.0);
+        var crossProductExpected = new Cartesian3(-17.0, 2.0, 7.0);
+
+        var crossProductResult = new Cartesian3();
+        // Check Cartesian3 cross product.
+        crossProductResult = Cartesian3.cross(left, right, crossProductResult);
+        expect(crossProductResult).toEqual(crossProductExpected);
+
+        // Check Matrix3 cross product equivalent.
+        crossProductResult = Matrix3.multiply(returnedResult, right, crossProductResult);
+        expect(crossProductResult).toEqual(crossProductExpected);
+    });
+
+    it('fromCrossProduct works with a result parameter', function() {
+        var expected = new Matrix3(
+                0.0, -3.0, -2.0,
+                3.0,  0.0, -1.0,
+                2.0,  1.0,  0.0);
+        var left = new Cartesian3(1.0, -2.0, 3.0);
+        var result = new Matrix3();
+        var returnedResult = Matrix3.fromCrossProduct(left, result);
+        expect(returnedResult).toBe(result);
+        expect(returnedResult).toEqual(expected);
+
+        var right = new Cartesian3(2.0, 3.0, 4.0);
+        var crossProductExpected = new Cartesian3(-17.0, 2.0, 7.0);
+
+        var crossProductResult = new Cartesian3();
+        // Check Cartesian3 cross product.
+        crossProductResult = Cartesian3.cross(left, right, crossProductResult);
+        expect(crossProductResult).toEqual(crossProductExpected);
+
+        // Check Matrix3 cross product equivalent.
+        crossProductResult = Matrix3.multiply(returnedResult, right, crossProductResult);
+        expect(crossProductResult).toEqual(crossProductExpected);
     });
 
     it('fromArray works without a result parameter', function() {
@@ -269,22 +316,7 @@ defineSuite([
         }
     });
 
-    it('getColumn works without a result parameter', function() {
-        var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        var expectedColumn0 = new Cartesian3(1.0, 4.0, 7.0);
-        var expectedColumn1 = new Cartesian3(2.0, 5.0, 8.0);
-        var expectedColumn2 = new Cartesian3(3.0, 6.0, 9.0);
-
-        var resultColumn0 = Matrix3.getColumn(matrix, 0);
-        var resultColumn1 = Matrix3.getColumn(matrix, 1);
-        var resultColumn2 = Matrix3.getColumn(matrix, 2);
-
-        expect(resultColumn0).toEqual(expectedColumn0);
-        expect(resultColumn1).toEqual(expectedColumn1);
-        expect(resultColumn2).toEqual(expectedColumn2);
-    });
-
-    it('getColumn works with a result parameter', function() {
+    it('getColumn works', function() {
         var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         var expectedColumn0 = new Cartesian3(1.0, 4.0, 7.0);
         var expectedColumn1 = new Cartesian3(2.0, 5.0, 8.0);
@@ -305,23 +337,7 @@ defineSuite([
         expect(resultColumn2).toEqual(expectedColumn2);
     });
 
-    it('setColumn works without a result parameter for each column', function() {
-        var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-
-        var expected = new Matrix3(10.0, 2.0, 3.0, 11.0, 5.0, 6.0, 12.0, 8.0, 9.0);
-        var result = Matrix3.setColumn(matrix, 0, new Cartesian3(10.0, 11.0, 12.0));
-        expect(result).toEqual(expected);
-
-        expected = new Matrix3(1.0, 13.0, 3.0, 4.0, 14.0, 6.0, 7.0, 15.0, 9.0);
-        result = Matrix3.setColumn(matrix, 1, new Cartesian3(13.0, 14.0, 15.0));
-        expect(result).toEqual(expected);
-
-        expected = new Matrix3(1.0, 2.0, 16.0, 4.0, 5.0, 17.0, 7.0, 8.0, 18.0);
-        result = Matrix3.setColumn(matrix, 2, new Cartesian3(16.0, 17.0, 18.0));
-        expect(result).toEqual(expected);
-    });
-
-    it('setColumn works with a result parameter for each column', function() {
+    it('setColumn works', function() {
         var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         var result = new Matrix3();
 
@@ -341,22 +357,7 @@ defineSuite([
         expect(result).toEqual(expected);
     });
 
-    it('getRow works without a result parameter', function() {
-        var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        var expectedRow0 = new Cartesian3(1.0, 2.0, 3.0);
-        var expectedRow1 = new Cartesian3(4.0, 5.0, 6.0);
-        var expectedRow2 = new Cartesian3(7.0, 8.0, 9.0);
-
-        var resultRow0 = Matrix3.getRow(matrix, 0);
-        var resultRow1 = Matrix3.getRow(matrix, 1);
-        var resultRow2 = Matrix3.getRow(matrix, 2);
-
-        expect(resultRow0).toEqual(expectedRow0);
-        expect(resultRow1).toEqual(expectedRow1);
-        expect(resultRow2).toEqual(expectedRow2);
-    });
-
-    it('getRow works with a result parameter', function() {
+    it('getRow works', function() {
         var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         var expectedRow0 = new Cartesian3(1.0, 2.0, 3.0);
         var expectedRow1 = new Cartesian3(4.0, 5.0, 6.0);
@@ -377,23 +378,7 @@ defineSuite([
         expect(resultRow2).toEqual(expectedRow2);
     });
 
-    it('setRow works without a result parameter for each row', function() {
-        var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-
-        var expected = new Matrix3(10.0, 11.0, 12.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        var result = Matrix3.setRow(matrix, 0, new Cartesian3(10.0, 11.0, 12.0));
-        expect(result).toEqual(expected);
-
-        expected = new Matrix3(1.0, 2.0, 3.0, 13.0, 14.0, 15.0, 7.0, 8.0, 9.0);
-        result = Matrix3.setRow(matrix, 1, new Cartesian3(13.0, 14.0, 15.0));
-        expect(result).toEqual(expected);
-
-        expected = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 16.0, 17.0, 18.0);
-        result = Matrix3.setRow(matrix, 2, new Cartesian3(16.0, 17.0, 18.0));
-        expect(result).toEqual(expected);
-    });
-
-    it('setRow works with a result parameter for each row', function() {
+    it('setRow works', function() {
         var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         var result = new Matrix3();
 
@@ -413,15 +398,33 @@ defineSuite([
         expect(result).toEqual(expected);
     });
 
-    it('multiply works without a result parameter', function() {
-        var left = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
-        var right = new Matrix3(10, 11, 12, 13, 14, 15, 16, 17, 18);
-        var expected = new Matrix3(84, 90, 96, 201, 216, 231, 318, 342, 366);
-        var result = Matrix3.multiply(left, right);
-        expect(result).toEqual(expected);
+    it('getScale works', function() {
+        var scale = new Cartesian3(1.0, 2.0, 3.0);
+        var result = new Cartesian3();
+        var computedScale = Matrix3.getScale(Matrix3.fromScale(scale), result);
+
+        expect(computedScale).toBe(result);
+        expect(computedScale).toEqualEpsilon(scale, CesiumMath.EPSILON14);
     });
 
-    it('multiply works with a result parameter', function() {
+    it('getScale throws without a matrix', function() {
+        expect(function() {
+            Matrix3.getScale();
+        }).toThrowDeveloperError();
+    });
+
+    it('getMaximumScale works', function() {
+        var m = Matrix3.fromScale(new Cartesian3(1.0, 2.0, 3.0));
+        expect(Matrix3.getMaximumScale(m)).toEqualEpsilon(3.0, CesiumMath.EPSILON14);
+    });
+
+    it('getMaximumScale throws without a matrix', function() {
+        expect(function() {
+            Matrix3.getMaximumScale();
+        }).toThrowDeveloperError();
+    });
+
+    it('multiply works', function() {
         var left = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
         var right = new Matrix3(10, 11, 12, 13, 14, 15, 16, 17, 18);
         var expected = new Matrix3(84, 90, 96, 201, 216, 231, 318, 342, 366);
@@ -440,15 +443,45 @@ defineSuite([
         expect(left).toEqual(expected);
     });
 
-    it('multiplyByVector works without a result parameter', function() {
+    it('add works', function() {
         var left = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
-        var right = new Cartesian3(10, 11, 12);
-        var expected = new Cartesian3(68, 167, 266);
-        var result = Matrix3.multiplyByVector(left, right);
+        var right = new Matrix3(10, 11, 12, 13, 14, 15, 16, 17, 18);
+        var expected = new Matrix3(11, 13, 15, 17, 19, 21, 23, 25, 27);
+        var result = new Matrix3();
+        var returnedResult = Matrix3.add(left, right, result);
+        expect(returnedResult).toBe(result);
         expect(result).toEqual(expected);
     });
 
-    it('multiplyByVector works with a result parameter', function() {
+    it('add works with a result parameter that is an input result parameter', function() {
+        var left = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var right = new Matrix3(10, 11, 12, 13, 14, 15, 16, 17, 18);
+        var expected = new Matrix3(11, 13, 15, 17, 19, 21, 23, 25, 27);
+        var returnedResult = Matrix3.add(left, right, left);
+        expect(returnedResult).toBe(left);
+        expect(left).toEqual(expected);
+    });
+
+    it('subtract works', function() {
+        var left = new Matrix3(11, 13, 15, 17, 19, 21, 23, 25, 27);
+        var right = new Matrix3(10, 11, 12, 13, 14, 15, 16, 17, 18);
+        var expected = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var result = new Matrix3();
+        var returnedResult = Matrix3.subtract(left, right, result);
+        expect(returnedResult).toBe(result);
+        expect(result).toEqual(expected);
+    });
+
+    it('subtract works with a result parameter that is an input result parameter', function() {
+        var left = new Matrix3(11, 13, 15, 17, 19, 21, 23, 25, 27);
+        var right = new Matrix3(10, 11, 12, 13, 14, 15, 16, 17, 18);
+        var expected = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var returnedResult = Matrix3.subtract(left, right, left);
+        expect(returnedResult).toBe(left);
+        expect(left).toEqual(expected);
+    });
+
+    it('multiplyByVector works', function() {
         var left = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
         var right = new Cartesian3(10, 11, 12);
         var expected = new Cartesian3(68, 167, 266);
@@ -458,15 +491,7 @@ defineSuite([
         expect(result).toEqual(expected);
     });
 
-    it('multiplyByScalar works without a result parameter', function() {
-        var left = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
-        var right = 2;
-        var expected = new Matrix3(2, 4, 6, 8, 10, 12, 14, 16, 18);
-        var result = Matrix3.multiplyByScalar(left, right);
-        expect(result).toEqual(expected);
-    });
-
-    it('multiplyByScalar works with a result parameter', function() {
+    it('multiplyByScalar works', function() {
         var left = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
         var right = 2;
         var expected = new Matrix3(2, 4, 6, 8, 10, 12, 14, 16, 18);
@@ -476,14 +501,7 @@ defineSuite([
         expect(result).toEqual(expected);
     });
 
-    it('negate works without a result parameter', function() {
-        var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        var expected = new Matrix3(-1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0);
-        var result = Matrix3.negate(matrix);
-        expect(result).toEqual(expected);
-    });
-
-    it('negate works with a result parameter', function() {
+    it('negate works', function() {
         var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         var expected = new Matrix3(-1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0);
         var result = new Matrix3();
@@ -500,14 +518,7 @@ defineSuite([
         expect(matrix).toEqual(expected);
     });
 
-    it('transpose works without a result parameter', function() {
-        var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        var expected = new Matrix3(1.0, 4.0, 7.0, 2.0, 5.0, 8.0, 3.0, 6.0, 9.0);
-        var result = Matrix3.transpose(matrix);
-        expect(result).toEqual(expected);
-    });
-
-    it('transpose works with a result parameter', function() {
+    it('transpose works', function() {
         var matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         var expected = new Matrix3(1.0, 4.0, 7.0, 2.0, 5.0, 8.0, 3.0, 6.0, 9.0);
         var result = new Matrix3();
@@ -531,14 +542,7 @@ defineSuite([
         expect(result).toEqual(expected);
     });
 
-    it('inverse works without a result parameter', function() {
-        var matrix = new Matrix3(1.0, 5.0, 2.0, 1.0, 1.0, 7.0, 0.0, -3.0, 4.0);
-        var expected = new Matrix3(-25.0, 26.0, -33.0, 4.0, -4.0, 5.0, 3.0, -3.0, 4.0);
-        var result = Matrix3.inverse(matrix);
-        expect(result).toEqual(expected);
-    });
-
-    it('inverse works with a result parameter', function() {
+    it('inverse works', function() {
         var matrix = new Matrix3(1.0, 5.0, 2.0, 1.0, 1.0, 7.0, 0.0, -3.0, 4.0);
         var expected = new Matrix3(-25.0, 26.0, -33.0, 4.0, -4.0, 5.0, 3.0, -3.0, 4.0);
         var result = new Matrix3();
@@ -555,9 +559,9 @@ defineSuite([
         expect(matrix).toEqual(expected);
     });
 
-    it('getEigenDecomposition throws without a matrix', function() {
+    it('computeEigenDecomposition throws without a matrix', function() {
         expect(function() {
-            return Matrix3.getEigenDecomposition();
+            return Matrix3.computeEigenDecomposition();
         }).toThrowDeveloperError();
     });
 
@@ -570,20 +574,20 @@ defineSuite([
                                            0.0, 6.0, 0.0,
                                            0.0, 0.0, 1.0);
 
-        var decomposition = Matrix3.getEigenDecomposition(a);
+        var decomposition = Matrix3.computeEigenDecomposition(a);
         expect(decomposition.diagonal).toEqualEpsilon(expectedDiagonal, CesiumMath.EPSILON14);
 
-        var v = Matrix3.getColumn(decomposition.unitary, 0);
-        var lambda = Matrix3.getColumn(decomposition.diagonal, 0).x;
-        expect(Cartesian3.multiplyByScalar(v, lambda)).toEqualEpsilon(Matrix3.multiplyByVector(a, v), CesiumMath.EPSILON14);
+        var v = Matrix3.getColumn(decomposition.unitary, 0, new Cartesian3());
+        var lambda = Matrix3.getColumn(decomposition.diagonal, 0, new Cartesian3()).x;
+        expect(Cartesian3.multiplyByScalar(v, lambda, new Cartesian3())).toEqualEpsilon(Matrix3.multiplyByVector(a, v, new Cartesian3()), CesiumMath.EPSILON14);
 
-        v = Matrix3.getColumn(decomposition.unitary, 1);
-        lambda = Matrix3.getColumn(decomposition.diagonal, 1).y;
-        expect(Cartesian3.multiplyByScalar(v, lambda)).toEqualEpsilon(Matrix3.multiplyByVector(a, v), CesiumMath.EPSILON14);
+        v = Matrix3.getColumn(decomposition.unitary, 1, new Cartesian3());
+        lambda = Matrix3.getColumn(decomposition.diagonal, 1, new Cartesian3()).y;
+        expect(Cartesian3.multiplyByScalar(v, lambda, new Cartesian3())).toEqualEpsilon(Matrix3.multiplyByVector(a, v, new Cartesian3()), CesiumMath.EPSILON14);
 
-        v = Matrix3.getColumn(decomposition.unitary, 2);
-        lambda = Matrix3.getColumn(decomposition.diagonal, 2).z;
-        expect(Cartesian3.multiplyByScalar(v, lambda)).toEqualEpsilon(Matrix3.multiplyByVector(a, v), CesiumMath.EPSILON14);
+        v = Matrix3.getColumn(decomposition.unitary, 2, new Cartesian3());
+        lambda = Matrix3.getColumn(decomposition.diagonal, 2, new Cartesian3()).z;
+        expect(Cartesian3.multiplyByScalar(v, lambda, new Cartesian3())).toEqualEpsilon(Matrix3.multiplyByVector(a, v, new Cartesian3()), CesiumMath.EPSILON14);
     });
 
     it('computes eigenvalues and eigenvectors with result parameters', function() {
@@ -599,21 +603,21 @@ defineSuite([
             diagonal : new Matrix3()
         };
 
-        var decomposition = Matrix3.getEigenDecomposition(a, result);
+        var decomposition = Matrix3.computeEigenDecomposition(a, result);
         expect(decomposition).toBe(result);
         expect(decomposition.diagonal).toEqualEpsilon(expectedDiagonal, CesiumMath.EPSILON14);
 
-        var v = Matrix3.getColumn(decomposition.unitary, 0);
-        var lambda = Matrix3.getColumn(decomposition.diagonal, 0).x;
-        expect(Cartesian3.multiplyByScalar(v, lambda)).toEqualEpsilon(Matrix3.multiplyByVector(a, v), CesiumMath.EPSILON14);
+        var v = Matrix3.getColumn(decomposition.unitary, 0, new Cartesian3());
+        var lambda = Matrix3.getColumn(decomposition.diagonal, 0, new Cartesian3()).x;
+        expect(Cartesian3.multiplyByScalar(v, lambda, new Cartesian3())).toEqualEpsilon(Matrix3.multiplyByVector(a, v, new Cartesian3()), CesiumMath.EPSILON14);
 
-        v = Matrix3.getColumn(decomposition.unitary, 1);
-        lambda = Matrix3.getColumn(decomposition.diagonal, 1).y;
-        expect(Cartesian3.multiplyByScalar(v, lambda)).toEqualEpsilon(Matrix3.multiplyByVector(a, v), CesiumMath.EPSILON14);
+        v = Matrix3.getColumn(decomposition.unitary, 1, new Cartesian3());
+        lambda = Matrix3.getColumn(decomposition.diagonal, 1, new Cartesian3()).y;
+        expect(Cartesian3.multiplyByScalar(v, lambda, new Cartesian3())).toEqualEpsilon(Matrix3.multiplyByVector(a, v, new Cartesian3()), CesiumMath.EPSILON14);
 
-        v = Matrix3.getColumn(decomposition.unitary, 2);
-        lambda = Matrix3.getColumn(decomposition.diagonal, 2).z;
-        expect(Cartesian3.multiplyByScalar(v, lambda)).toEqualEpsilon(Matrix3.multiplyByVector(a, v), CesiumMath.EPSILON14);
+        v = Matrix3.getColumn(decomposition.unitary, 2, new Cartesian3());
+        lambda = Matrix3.getColumn(decomposition.diagonal, 2, new Cartesian3()).z;
+        expect(Cartesian3.multiplyByScalar(v, lambda, new Cartesian3())).toEqualEpsilon(Matrix3.multiplyByVector(a, v, new Cartesian3()), CesiumMath.EPSILON14);
     });
 
     it('abs throws without a matrix', function() {
@@ -622,29 +626,20 @@ defineSuite([
         }).toThrowDeveloperError();
     });
 
-    it('abs works without a result parameter', function() {
-        var matrix = new Matrix3(-1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0);
-        var expected = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        var result = new Matrix3();
-        var returnedResult = Matrix3.abs(matrix);
-        expect(returnedResult).toEqual(expected);
-
-        matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-        returnedResult = Matrix3.abs(matrix);
-        expect(returnedResult).toEqual(expected);
-
-        matrix = new Matrix3(1.0, -2.0, -3.0, 4.0, 5.0, -6.0, 7.0, -8.0, 9.0);
-        returnedResult = Matrix3.abs(matrix);
-        expect(returnedResult).toEqual(expected);
-    });
-
-    it('abs works with a result parameter', function() {
+    it('abs works', function() {
         var matrix = new Matrix3(-1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0);
         var expected = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         var result = new Matrix3();
         var returnedResult = Matrix3.abs(matrix, result);
-        expect(result).toBe(returnedResult);
-        expect(result).toEqual(expected);
+        expect(returnedResult).toEqual(expected);
+
+        matrix = new Matrix3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+        returnedResult = Matrix3.abs(matrix, result);
+        expect(returnedResult).toEqual(expected);
+
+        matrix = new Matrix3(1.0, -2.0, -3.0, 4.0, 5.0, -6.0, 7.0, -8.0, 9.0);
+        returnedResult = Matrix3.abs(matrix, result);
+        expect(returnedResult).toEqual(expected);
     });
 
     it('abs works with a result parameter that is an input result parameter', function() {
@@ -783,17 +778,17 @@ defineSuite([
         }).toThrowDeveloperError();
     });
 
-    it('static clone returns undefined without matrix parameter', function() {
+    it('clone returns undefined without matrix parameter', function() {
         expect(Matrix3.clone(undefined)).toBeUndefined();
     });
 
-    it('static toArray throws without matrix parameter', function() {
+    it('toArray throws without matrix parameter', function() {
         expect(function() {
             Matrix3.toArray(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static getElement throws without row parameter', function() {
+    it('getElement throws without row parameter', function() {
         var row;
         var col = 0.0;
         expect(function() {
@@ -801,7 +796,7 @@ defineSuite([
         }).toThrowDeveloperError();
     });
 
-    it('static getElement throws without column parameter', function() {
+    it('getElement throws without column parameter', function() {
         var row = 0.0;
         var col;
         expect(function() {
@@ -809,34 +804,34 @@ defineSuite([
         }).toThrowDeveloperError();
     });
 
-    it('static getColumn throws without matrix parameter', function() {
+    it('getColumn throws without matrix parameter', function() {
         expect(function() {
             Matrix3.getColumn(undefined, 1);
         }).toThrowDeveloperError();
     });
 
-    it('static getColumn throws without of range index parameter', function() {
+    it('getColumn throws without of range index parameter', function() {
         var matrix = new Matrix3();
         expect(function() {
             Matrix3.getColumn(matrix, 3);
         }).toThrowDeveloperError();
     });
 
-    it('static setColumn throws without matrix parameter', function() {
+    it('setColumn throws without matrix parameter', function() {
         var cartesian = new Cartesian3();
         expect(function() {
             Matrix3.setColumn(undefined, 2, cartesian);
         }).toThrowDeveloperError();
     });
 
-    it('static setColumn throws without cartesian parameter', function() {
+    it('setColumn throws without cartesian parameter', function() {
         var matrix = new Matrix3();
         expect(function() {
             Matrix3.setColumn(matrix, 1, undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static setColumn throws without of range index parameter', function() {
+    it('setColumn throws without of range index parameter', function() {
         var matrix = new Matrix3();
         var cartesian = new Cartesian3();
         expect(function() {
@@ -844,34 +839,34 @@ defineSuite([
         }).toThrowDeveloperError();
     });
 
-    it('static getRow throws without matrix parameter', function() {
+    it('getRow throws without matrix parameter', function() {
         expect(function() {
             Matrix3.getRow(undefined, 1);
         }).toThrowDeveloperError();
     });
 
-    it('static getRow throws without of range index parameter', function() {
+    it('getRow throws without of range index parameter', function() {
         var matrix = new Matrix3();
         expect(function() {
             Matrix3.getRow(matrix, 3);
         }).toThrowDeveloperError();
     });
 
-    it('static setRow throws without matrix parameter', function() {
+    it('setRow throws without matrix parameter', function() {
         var cartesian = new Cartesian3();
         expect(function() {
             Matrix3.setRow(undefined, 2, cartesian);
         }).toThrowDeveloperError();
     });
 
-    it('static setRow throws without cartesian parameter', function() {
+    it('setRow throws without cartesian parameter', function() {
         var matrix = new Matrix3();
         expect(function() {
             Matrix3.setRow(matrix, 1, undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static setRow throws without of range index parameter', function() {
+    it('setRow throws without of range index parameter', function() {
         var matrix = new Matrix3();
         var cartesian = new Cartesian3();
         expect(function() {
@@ -879,98 +874,170 @@ defineSuite([
         }).toThrowDeveloperError();
     });
 
-    it('static multiply throws with no left parameter', function() {
+    it('multiply throws with no left parameter', function() {
         var right = new Matrix3();
         expect(function() {
             Matrix3.multiply(undefined, right);
         }).toThrowDeveloperError();
     });
 
-    it('static multiply throws with no right parameter', function() {
+    it('multiply throws with no right parameter', function() {
         var left = new Matrix3();
         expect(function() {
             Matrix3.multiply(left, undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static multiplyByVector throws with no matrix parameter', function() {
+    it('multiplyByVector throws with no matrix parameter', function() {
         var cartesian = new Cartesian3();
         expect(function() {
             Matrix3.multiplyByVector(undefined, cartesian);
         }).toThrowDeveloperError();
     });
 
-    it('static multiplyByVector throws with no cartesian parameter', function() {
+    it('multiplyByVector throws with no cartesian parameter', function() {
         var matrix = new Matrix3();
         expect(function() {
             Matrix3.multiplyByVector(matrix, undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static multiplyByScalar throws with no matrix parameter', function() {
+    it('multiplyByScalar throws with no matrix parameter', function() {
         expect(function() {
             Matrix3.multiplyByScalar(undefined, 2);
         }).toThrowDeveloperError();
     });
 
-    it('static multiplyByScalar throws with non-numeric scalar parameter', function() {
+    it('multiplyByScalar throws with non-numeric scalar parameter', function() {
         var matrix = new Matrix3();
         expect(function() {
             Matrix3.multiplyByScalar(matrix, {});
         }).toThrowDeveloperError();
     });
 
-    it('static negate throws without matrix parameter', function() {
+    it('negate throws without matrix parameter', function() {
         expect(function() {
             Matrix3.negate(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static transpose throws without matrix parameter', function() {
+    it('transpose throws without matrix parameter', function() {
         expect(function() {
             Matrix3.transpose(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static determinant throws without matrix parameter', function() {
+    it('determinant throws without matrix parameter', function() {
         expect(function() {
             Matrix3.determinant(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static inverse throws without matrix parameter', function() {
+    it('inverse throws without matrix parameter', function() {
         expect(function() {
             Matrix3.inverse(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static inverse throws when matrix is not invertible', function() {
+    it('inverse throws when matrix is not invertible', function() {
         expect(function() {
-            Matrix3.inverse(new Matrix3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+            Matrix3.inverse(new Matrix3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), new Matrix3());
         }).toThrowDeveloperError();
     });
 
-    it('static fromQuaternion throws without quaternion parameter', function() {
+    it('fromQuaternion throws without quaternion parameter', function() {
         expect(function() {
             Matrix3.fromQuaternion(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static fromScale throws without scale parameter', function() {
+    it('fromScale throws without scale parameter', function() {
         expect(function() {
             Matrix3.fromScale(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static fromUniformScale throws without scale parameter', function() {
+    it('fromUniformScale throws without scale parameter', function() {
         expect(function() {
             Matrix3.fromUniformScale(undefined);
         }).toThrowDeveloperError();
     });
 
-    it('static equalsEpsilon throws with non-number parameter', function() {
+    it('equalsEpsilon throws with non-number parameter', function() {
         expect(function() {
             Matrix3.equalsEpsilon(new Matrix3(), new Matrix3(), {});
+        }).toThrowDeveloperError();
+    });
+
+    it('getColumn throws without result parameter', function() {
+        expect(function() {
+            Matrix3.getColumn(new Matrix3(), 2);
+        }).toThrowDeveloperError();
+    });
+
+    it('setColumn throws without result parameter', function() {
+        expect(function() {
+            Matrix3.setColumn(new Matrix3(), 2, new Cartesian3());
+        }).toThrowDeveloperError();
+    });
+
+    it('getRow throws without result parameter', function() {
+        expect(function() {
+            Matrix3.getRow(new Matrix3(), 2);
+        }).toThrowDeveloperError();
+    });
+
+    it('setRow throws without result parameter', function() {
+        expect(function() {
+            Matrix3.setRow(new Matrix3(), 2, new Cartesian3());
+        }).toThrowDeveloperError();
+    });
+
+    it('getScale throws without result parameter', function() {
+        expect(function() {
+            Matrix3.getScale(new Matrix3());
+        }).toThrowDeveloperError();
+    });
+
+    it('multiply throws without result parameter', function() {
+        expect(function() {
+            Matrix3.multiply(new Matrix3(), new Matrix3());
+        }).toThrowDeveloperError();
+    });
+
+    it('multiplyByVector throws without result parameter', function() {
+        expect(function() {
+            Matrix3.multiplyByVector(new Matrix3(), new Cartesian3());
+        }).toThrowDeveloperError();
+    });
+
+    it('multiplyByScalar throws without result parameter', function() {
+        expect(function() {
+            Matrix3.multiplyByScalar(new Matrix3(), 2);
+        }).toThrowDeveloperError();
+    });
+
+    it('negate throws without result parameter', function() {
+        expect(function() {
+            Matrix3.negate(new Matrix3());
+        }).toThrowDeveloperError();
+    });
+
+    it('transpose throws without result parameter', function() {
+        expect(function() {
+            Matrix3.transpose(new Matrix3());
+        }).toThrowDeveloperError();
+    });
+
+    it('abs throws without result parameter', function() {
+        expect(function() {
+            Matrix3.abs(new Matrix3());
+        }).toThrowDeveloperError();
+    });
+
+    it('inverse throws without result parameter', function() {
+        expect(function() {
+            Matrix3.inverse(new Matrix3());
         }).toThrowDeveloperError();
     });
 });

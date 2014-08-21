@@ -1,18 +1,16 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/CameraEventAggregator',
-         'Scene/CameraEventType',
-         'Core/Cartesian2',
-         'Core/KeyboardEventModifier',
-         'Core/ScreenSpaceEventType',
-         'Specs/MockCanvas'
-     ], function(
-         CameraEventAggregator,
-         CameraEventType,
-         Cartesian2,
-         KeyboardEventModifier,
-         ScreenSpaceEventType,
-         MockCanvas) {
+        'Scene/CameraEventAggregator',
+        'Core/Cartesian2',
+        'Core/KeyboardEventModifier',
+        'Scene/CameraEventType',
+        'Specs/MockCanvas'
+    ], function(
+        CameraEventAggregator,
+        Cartesian2,
+        KeyboardEventModifier,
+        CameraEventType,
+        MockCanvas) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -139,7 +137,7 @@ defineSuite([
     });
 
     it('anyButtonDown', function() {
-        expect(handler.anyButtonDown(CameraEventType.LEFT_DRAG)).toEqual(false);
+        expect(handler.anyButtonDown).toEqual(false);
 
         var args = {
             button : MouseButtons.LEFT,
@@ -147,18 +145,18 @@ defineSuite([
             clientY : 0
         };
         canvas.fireEvents('mousedown', args);
-        expect(handler.anyButtonDown(CameraEventType.LEFT_DRAG)).toEqual(true);
+        expect(handler.anyButtonDown).toEqual(true);
 
         args.button = MouseButtons.RIGHT;
         canvas.fireEvents('mousedown', args);
-        expect(handler.anyButtonDown(CameraEventType.LEFT_DRAG)).toEqual(true);
+        expect(handler.anyButtonDown).toEqual(true);
 
         canvas.fireEvents('mouseup', args);
-        expect(handler.anyButtonDown(CameraEventType.LEFT_DRAG)).toEqual(true);
+        expect(handler.anyButtonDown).toEqual(true);
 
         args.button = MouseButtons.LEFT;
         canvas.fireEvents('mouseup', args);
-        expect(handler.anyButtonDown(CameraEventType.LEFT_DRAG)).toEqual(false);
+        expect(handler.anyButtonDown).toEqual(false);
     });
 
     it('getButtonPressTime', function() {

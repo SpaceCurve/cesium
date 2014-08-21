@@ -1,12 +1,10 @@
 /*global defineSuite*/
 defineSuite([
         'Core/TaskProcessor',
-        'Core/FeatureDetection',
         'require',
         'Specs/waitsForPromise'
     ], function(
         TaskProcessor,
-        FeatureDetection,
         require,
         waitsForPromise) {
     "use strict";
@@ -49,7 +47,7 @@ defineSuite([
         };
         var promise = taskProcessor.scheduleTask(parameters);
 
-        waitsForPromise(promise).then(function(result) {
+        waitsForPromise(promise, function(result) {
             expect(result).toEqual(parameters);
         });
     });
@@ -65,34 +63,28 @@ defineSuite([
     });
 
     it('can transfer array buffer', function() {
-        if (!FeatureDetection.supportsTransferringArrayBuffers()) {
-            // This browser cannot transer array buffers at all.
-            return;
-        }
-
         taskProcessor = new TaskProcessor('returnByteLength');
 
         var byteLength = 100;
         var parameters = new ArrayBuffer(byteLength);
         expect(parameters.byteLength).toEqual(byteLength);
 
-        var promise = taskProcessor.scheduleTask(parameters, [parameters]);
+        waitsForPromise(TaskProcessor._canTransferArrayBuffer, function(canTransferArrayBuffer) {
+            var promise = taskProcessor.scheduleTask(parameters, [parameters]);
 
-        // array buffer should be neutered when transferred
-        expect(parameters.byteLength).toEqual(0);
+            if (canTransferArrayBuffer) {
+                // array buffer should be neutered when transferred
+                expect(parameters.byteLength).toEqual(0);
+            }
 
-        // the worker should see the array with proper byte length
-        waitsForPromise(promise).then(function(result) {
-            expect(result).toEqual(byteLength);
+            // the worker should see the array with proper byte length
+            waitsForPromise(promise, function(result) {
+                expect(result).toEqual(byteLength);
+            });
         });
     });
 
     it('can transfer array buffer back from worker', function() {
-        if (!FeatureDetection.supportsTransferringArrayBuffers()) {
-            // This browser cannot transer array buffers at all.
-            return;
-        }
-
         taskProcessor = new TaskProcessor('transferArrayBuffer');
 
         var byteLength = 100;
@@ -103,7 +95,7 @@ defineSuite([
         var promise = taskProcessor.scheduleTask(parameters);
 
         // the worker should see the array with proper byte length
-        waitsForPromise(promise).then(function(result) {
+        waitsForPromise(promise, function(result) {
             expect(result.byteLength).toEqual(100);
         });
     });
@@ -118,9 +110,7 @@ defineSuite([
 
         var promise = taskProcessor.scheduleTask(parameters);
 
-        waitsForPromise(promise, {
-            expectRejection : true
-        }).then(undefined, function(error) {
+        waitsForPromise.toReject(promise, function(error) {
             expect(error.message).toEqual(message);
         });
     });
@@ -135,9 +125,7 @@ defineSuite([
 
         var promise = taskProcessor.scheduleTask(parameters);
 
-        waitsForPromise(promise, {
-            expectRejection : true
-        }).then(undefined, function(error) {
+        waitsForPromise.toReject(promise, function(error) {
             expect(error).toContain('postMessage failed');
         });
     });

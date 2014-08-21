@@ -1,15 +1,16 @@
 /*global define*/
 define([
-        './Enumeration'
-       ], function(
-         Enumeration) {
+        './freezeObject'
+    ], function(
+        freezeObject) {
     "use strict";
 
     /**
      * Constants used by {@link Clock#tick} to determine behavior
      * when {@link Clock#startTime} or {@link Clock#stopTime} is reached.
      *
-     * @exports ClockRange
+     * @namespace
+     * @alias ClockRange
      *
      * @see Clock
      * @see ClockStep
@@ -18,21 +19,19 @@ define([
         /**
          * {@link Clock#tick} will always advances the clock in its current direction.
          *
-         * @type {ClockRange}
+         * @type {Number}
          * @constant
-         * @default 0
          */
-        UNBOUNDED : new Enumeration(0, 'UNBOUNDED'),
+        UNBOUNDED : 0,
 
         /**
          * When {@link Clock#startTime} or {@link Clock#stopTime} is reached,
          * {@link Clock#tick} will not advance {@link Clock#currentTime} any further.
          *
-         * @type {ClockRange}
+         * @type {Number}
          * @constant
-         * @default 1
          */
-        CLAMPED : new Enumeration(1, 'CLAMPED'),
+        CLAMPED : 1,
 
         /**
          * When {@link Clock#stopTime} is reached, {@link Clock#tick} will advance
@@ -40,12 +39,11 @@ define([
          * time is moving backwards, {@link Clock#tick} will not advance past
          * {@link Clock#startTime}
          *
-         * @type {ClockRange}
+         * @type {Number}
          * @constant
-         * @default 2
          */
-        LOOP_STOP : new Enumeration(2, 'LOOP_STOP')
+        LOOP_STOP : 2
     };
 
-    return ClockRange;
+    return freezeObject(ClockRange);
 });

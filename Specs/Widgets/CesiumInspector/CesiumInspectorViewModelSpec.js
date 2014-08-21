@@ -1,28 +1,30 @@
 /*global defineSuite*/
 defineSuite([
-         'Widgets/CesiumInspector/CesiumInspectorViewModel',
-         'Specs/createScene',
-         'Specs/destroyScene',
-         'Core/Extent',
-         'Core/defined',
-         'Scene/ExtentPrimitive',
-         'Scene/Tile',
-         'Scene/WebMercatorTilingScheme',
-         'Scene/Material',
-         'Scene/CentralBody',
-         'Core/Math'
-     ], function(
-         CesiumInspectorViewModel,
-         createScene,
-         destroyScene,
-         Extent,
-         defined,
-         ExtentPrimitive,
-         Tile,
-         WebMercatorTilingScheme,
-         Material,
-         CentralBody,
-         CesiumMath) {
+        'Widgets/CesiumInspector/CesiumInspectorViewModel',
+        'Core/defined',
+        'Core/Math',
+        'Core/Rectangle',
+        'Core/WebMercatorTilingScheme',
+        'Scene/Globe',
+        'Scene/GlobeSurfaceTile',
+        'Scene/Material',
+        'Scene/QuadtreeTile',
+        'Scene/RectanglePrimitive',
+        'Specs/createScene',
+        'Specs/destroyScene'
+    ], function(
+        CesiumInspectorViewModel,
+        defined,
+        CesiumMath,
+        Rectangle,
+        WebMercatorTilingScheme,
+        Globe,
+        GlobeSurfaceTile,
+        Material,
+        QuadtreeTile,
+        RectanglePrimitive,
+        createScene,
+        destroyScene) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -36,7 +38,7 @@ defineSuite([
     });
 
     beforeEach(function() {
-        scene.primitives.centralBody = new CentralBody();
+        scene.globe = new Globe();
         scene.initializeFrame();
     });
 
@@ -52,7 +54,7 @@ defineSuite([
     it('throws if scene is undefined', function() {
         expect(function() {
             return new CesiumInspectorViewModel();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('show frustums', function() {
@@ -82,8 +84,8 @@ defineSuite([
     });
 
     it ('primitive bounding sphere', function() {
-        var p = scene.primitives.add(new ExtentPrimitive({
-            extent : new Extent(
+        var p = scene.primitives.add(new RectanglePrimitive({
+            rectangle : new Rectangle(
                     CesiumMath.toRadians(-110.0),
                     CesiumMath.toRadians(0.0),
                     CesiumMath.toRadians(-90.0),
@@ -106,8 +108,8 @@ defineSuite([
     });
 
     it ('primitive filter', function() {
-        var p = scene.primitives.add(new ExtentPrimitive({
-            extent : new Extent(
+        var p = scene.primitives.add(new RectanglePrimitive({
+            rectangle : new Rectangle(
                     CesiumMath.toRadians(-110.0),
                     CesiumMath.toRadians(0.0),
                     CesiumMath.toRadians(-90.0),
@@ -117,8 +119,8 @@ defineSuite([
             })
         );
 
-        var q = scene.primitives.add(new ExtentPrimitive({
-            extent : new Extent(
+        var q = scene.primitives.add(new RectanglePrimitive({
+            rectangle : new Rectangle(
                     CesiumMath.toRadians(-10.0),
                     CesiumMath.toRadians(0.0),
                     CesiumMath.toRadians(-9.0),
@@ -142,8 +144,8 @@ defineSuite([
     });
 
     it ('primitive reference frame', function() {
-        var p = scene.primitives.add(new ExtentPrimitive({
-            extent : new Extent(
+        var p = scene.primitives.add(new RectanglePrimitive({
+            rectangle : new Rectangle(
                     CesiumMath.toRadians(-110.0),
                     CesiumMath.toRadians(0.0),
                     CesiumMath.toRadians(-90.0),
@@ -169,59 +171,61 @@ defineSuite([
         var viewModel = new CesiumInspectorViewModel(scene);
         viewModel.wireframe = true;
         viewModel.showWireframe();
-        expect(viewModel.scene.primitives.centralBody._surface._debug.wireframe).toBe(true);
+        expect(viewModel.scene.globe._surface.tileProvider._debug.wireframe).toBe(true);
 
         viewModel.wireframe = false;
         viewModel.showWireframe();
-        expect(viewModel.scene.primitives.centralBody._surface._debug.wireframe).toBe(false);
+        expect(viewModel.scene.globe._surface.tileProvider._debug.wireframe).toBe(false);
     });
 
     it('suspend updates', function() {
         var viewModel = new CesiumInspectorViewModel(scene);
         viewModel.suspendUpdates = true;
         viewModel.doSuspendUpdates();
-        expect(viewModel.scene.primitives.centralBody._surface._debug.suspendLodUpdate).toBe(true);
+        expect(viewModel.scene.globe._surface._debug.suspendLodUpdate).toBe(true);
 
         viewModel.suspendUpdates = false;
         viewModel.doSuspendUpdates();
-        expect(viewModel.scene.primitives.centralBody._surface._debug.suspendLodUpdate).toBe(false);
+        expect(viewModel.scene.globe._surface._debug.suspendLodUpdate).toBe(false);
     });
 
     it('show tile coords', function() {
         var viewModel = new CesiumInspectorViewModel(scene);
-        expect(viewModel.scene.primitives.centralBody.imageryLayers.length).toBe(0);
+        expect(viewModel.scene.imageryLayers.length).toBe(0);
 
         viewModel.tileCoordinates  = true;
         viewModel.showTileCoordinates();
-        expect(viewModel.scene.primitives.centralBody.imageryLayers.length).toBe(1);
+        expect(viewModel.scene.imageryLayers.length).toBe(1);
 
         viewModel.tileCoordinates = false;
         viewModel.showTileCoordinates();
-        expect(viewModel.scene.primitives.centralBody.imageryLayers.length).toBe(0);
+        expect(viewModel.scene.imageryLayers.length).toBe(0);
     });
 
     it('show tile bounding sphere', function() {
         var viewModel = new CesiumInspectorViewModel(scene);
-        var tile = new Tile({tilingScheme : new WebMercatorTilingScheme(), x : 0, y : 0, level : 0});
+        var tile = new QuadtreeTile({tilingScheme : new WebMercatorTilingScheme(), x : 0, y : 0, level : 0});
+        tile.data = new GlobeSurfaceTile();
         viewModel.tile = tile;
 
         viewModel.tileBoundingSphere  = true;
         viewModel.showTileBoundingSphere();
-        expect(viewModel.scene.primitives.centralBody._surface._debug.boundingSphereTile).toBe(tile);
+        expect(viewModel.scene.globe._surface.tileProvider._debug.boundingSphereTile).toBe(tile);
 
         viewModel.tileBoundingSphere = false;
         viewModel.showTileBoundingSphere();
-        expect(viewModel.scene.primitives.centralBody._surface._debug.boundingSphereTile).toBe(undefined);
+        expect(viewModel.scene.globe._surface.tileProvider._debug.boundingSphereTile).toBe(undefined);
     });
 
     it('filter tile', function() {
         var viewModel = new CesiumInspectorViewModel(scene);
-        var tile = new Tile({tilingScheme : new WebMercatorTilingScheme(), x : 0, y : 0, level : 0});
+        var tile = new QuadtreeTile({tilingScheme : new WebMercatorTilingScheme(), x : 0, y : 0, level : 0});
+        tile.data = new GlobeSurfaceTile();
         viewModel.tile = tile;
 
         viewModel.filterTile  = true;
         viewModel.doFilterTile();
-        expect(viewModel.scene.primitives.centralBody._surface._tilesToRenderByTextureCount[0][0]).toBe(tile);
+        expect(viewModel.scene.globe._surface._tilesToRender[0]).toBe(tile);
         expect(viewModel.suspendUpdates).toBe(true);
 
         viewModel.filterTile = false;

@@ -1,14 +1,14 @@
 /*global defineSuite*/
 defineSuite([
-         'Core/SphereGeometry',
-         'Core/Cartesian3',
-         'Core/Math',
-         'Core/VertexFormat'
-     ], function(
-         SphereGeometry,
-         Cartesian3,
-         CesiumMath,
-         VertexFormat) {
+        'Core/SphereGeometry',
+        'Core/Cartesian3',
+        'Core/Math',
+        'Core/VertexFormat'
+    ], function(
+        SphereGeometry,
+        Cartesian3,
+        CesiumMath,
+        VertexFormat) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -77,9 +77,9 @@ defineSuite([
             var binormal = Cartesian3.fromArray(binormals, i);
 
             expect(Cartesian3.magnitude(position)).toEqualEpsilon(1.0, CesiumMath.EPSILON10);
-            expect(normal).toEqualEpsilon(Cartesian3.normalize(position), CesiumMath.EPSILON7);
+            expect(normal).toEqualEpsilon(Cartesian3.normalize(position, position), CesiumMath.EPSILON7);
             expect(Cartesian3.dot(Cartesian3.UNIT_Z, tangent)).not.toBeLessThan(0.0);
-            expect(binormal).toEqualEpsilon(Cartesian3.cross(normal, tangent), CesiumMath.EPSILON7);
+            expect(binormal).toEqualEpsilon(Cartesian3.cross(normal, tangent, normal), CesiumMath.EPSILON7);
         }
     });
 });

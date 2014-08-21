@@ -1,16 +1,16 @@
 /*global defineSuite*/
 defineSuite([
-         'Widgets/Viewer/viewerDragDropMixin',
-         'Core/defined',
-         'Core/TimeInterval',
-         'Specs/EventHelper',
-         'Widgets/Viewer/Viewer'
-     ], function(
-         viewerDragDropMixin,
-         defined,
-         TimeInterval,
-         EventHelper,
-         Viewer) {
+        'Widgets/Viewer/viewerDragDropMixin',
+        'Core/defined',
+        'Core/TimeInterval',
+        'Specs/EventHelper',
+        'Widgets/Viewer/Viewer'
+    ], function(
+        viewerDragDropMixin,
+        defined,
+        TimeInterval,
+        EventHelper,
+        Viewer) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -58,6 +58,14 @@ defineSuite([
         expect(viewer.clearOnDrop).toEqual(true);
     });
 
+    it('clearOnDrop defaults to true when dataSourceBrowser is not used', function() {
+        viewer = new Viewer(container, {
+            dataSourceBrowser : false
+        });
+        viewer.extend(viewerDragDropMixin);
+        expect(viewer.clearOnDrop).toEqual(true);
+    });
+
     it('mixin sets option values', function() {
         viewer = new Viewer(container);
         viewer.extend(viewerDragDropMixin, {
@@ -77,21 +85,25 @@ defineSuite([
         expect(viewer.dropTarget).toBe(container);
     });
 
-    var czml1 = {
-        id : 'test',
-        availability : '2000-01-01/2001-01-01',
-        billboard : {
-            show : true
+    var czml1 = [{
+        id : 'document',
+        version : '1.0',
+        clock : {
+            interval : '2000-01-01/2001-01-01'
         }
-    };
+    }, {
+        id : 'test'
+    }];
 
-    var czml2 = {
-        id : 'test2',
-        availability : '2000-01-02/2001-01-02',
-        billboard : {
-            show : true
+    var czml2 = [{
+        id : 'document',
+        version : '1.0',
+        clock : {
+            interval : '2000-01-02/2001-01-02'
         }
-    };
+    }, {
+        id : 'test2'
+    }];
 
     it('handleDrop processes drop event', function() {
         var mockEvent = {
@@ -118,10 +130,12 @@ defineSuite([
 
         runs(function() {
             var dataSource = viewer.dataSources.get(0);
-            var interval = TimeInterval.fromIso8601(czml1.availability);
-            expect(dataSource.getDynamicObjectCollection().getById('test')).toBeDefined();
-            expect(dataSource.getClock().startTime).toEqual(interval.start);
-            expect(dataSource.getClock().stopTime).toEqual(interval.stop);
+            var interval = TimeInterval.fromIso8601({
+                iso8601 : czml1[0].clock.interval
+            });
+            expect(dataSource.entities.getById('test')).toBeDefined();
+            expect(dataSource.clock.startTime).toEqual(interval.start);
+            expect(dataSource.clock.stopTime).toEqual(interval.stop);
         });
     });
 
@@ -154,12 +168,14 @@ defineSuite([
         runs(function() {
             var source1 = viewer.dataSources.get(0);
             var source2 = viewer.dataSources.get(1);
-            expect(source1.getDynamicObjectCollection().getById('test')).toBeDefined();
-            expect(source2.getDynamicObjectCollection().getById('test2')).toBeDefined();
+            expect(source1.entities.getById('test')).toBeDefined();
+            expect(source2.entities.getById('test2')).toBeDefined();
             //Interval of first file should be used.
-            var interval = TimeInterval.fromIso8601(czml1.availability);
-            expect(source1.getClock().startTime).toEqual(interval.start);
-            expect(source1.getClock().stopTime).toEqual(interval.stop);
+            var interval = TimeInterval.fromIso8601({
+                iso8601 : czml1[0].clock.interval
+            });
+            expect(source1.clock.startTime).toEqual(interval.start);
+            expect(source1.clock.stopTime).toEqual(interval.stop);
         });
     });
 
@@ -192,12 +208,14 @@ defineSuite([
         runs(function() {
             var source1 = viewer.dataSources.get(0);
             var source2 = viewer.dataSources.get(1);
-            expect(source1.getDynamicObjectCollection().getById('test')).toBeDefined();
-            expect(source2.getDynamicObjectCollection().getById('test2')).toBeDefined();
+            expect(source1.entities.getById('test')).toBeDefined();
+            expect(source2.entities.getById('test2')).toBeDefined();
             //Interval of first file should be used.
-            var interval = TimeInterval.fromIso8601(czml1.availability);
-            expect(source1.getClock().startTime).toEqual(interval.start);
-            expect(source1.getClock().stopTime).toEqual(interval.stop);
+            var interval = TimeInterval.fromIso8601({
+                iso8601 : czml1[0].clock.interval
+            });
+            expect(source1.clock.startTime).toEqual(interval.start);
+            expect(source1.clock.stopTime).toEqual(interval.stop);
 
             viewer.clearOnDrop = false;
             EventHelper.fireMockEvent(viewer._handleDrop, mockEvent);
@@ -213,10 +231,10 @@ defineSuite([
             var source3 = viewer.dataSources.get(2);
             var source4 = viewer.dataSources.get(3);
 
-            expect(source1.getDynamicObjectCollection().getById('test')).toBeDefined();
-            expect(source2.getDynamicObjectCollection().getById('test2')).toBeDefined();
-            expect(source3.getDynamicObjectCollection().getById('test')).toBeDefined();
-            expect(source4.getDynamicObjectCollection().getById('test2')).toBeDefined();
+            expect(source1.entities.getById('test')).toBeDefined();
+            expect(source2.entities.getById('test2')).toBeDefined();
+            expect(source3.entities.getById('test')).toBeDefined();
+            expect(source4.entities.getById('test2')).toBeDefined();
 
             viewer.clearOnDrop = true;
             EventHelper.fireMockEvent(viewer._handleDrop, mockEvent);
@@ -229,12 +247,14 @@ defineSuite([
         runs(function() {
             var source1 = viewer.dataSources.get(0);
             var source2 = viewer.dataSources.get(1);
-            expect(source1.getDynamicObjectCollection().getById('test')).toBeDefined();
-            expect(source2.getDynamicObjectCollection().getById('test2')).toBeDefined();
+            expect(source1.entities.getById('test')).toBeDefined();
+            expect(source2.entities.getById('test2')).toBeDefined();
             //Interval of first file should be used.
-            var interval = TimeInterval.fromIso8601(czml1.availability);
-            expect(source1.getClock().startTime).toEqual(interval.start);
-            expect(source1.getClock().stopTime).toEqual(interval.stop);
+            var interval = TimeInterval.fromIso8601({
+                iso8601 : czml1[0].clock.interval
+            });
+            expect(source1.clock.startTime).toEqual(interval.start);
+            expect(source1.clock.stopTime).toEqual(interval.stop);
         });
     });
 
