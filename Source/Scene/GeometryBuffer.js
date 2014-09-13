@@ -37,10 +37,10 @@ define([
   GeometryBuffer.prototype.pushPoint = function(coordinates, properties, appearance) {
     appearance = defaultValue(appearance, {});
     var color = defaultValue(appearance.color, Color.WHITE);
-    var imageIndex = defaultValue(appearance.imageIndex, 0);
+    var image = defaultValue(appearance.image, 0);
     var billboard = this.billboards.add({
       color : color,
-      imageIndex : imageIndex,
+      image : image,
       position : coordinates,
       id : properties
     });
