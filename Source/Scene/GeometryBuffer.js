@@ -65,11 +65,13 @@ define([
     appearance = defaultValue(appearance, {});
     var color = defaultValue(appearance.color, Color.WHITE);
     var height = defaultValue(appearance.height, 0);
+    var extrudedHeight = defaultValue(appearance.extrudedHeight, 0);
     this.polyBuf.push(new GeometryInstance({
       id : properties,
       geometry : PolygonGeometry.fromPositions({
         positions : positions,
         vertexFormat : PerInstanceColorAppearance.FLAT_VERTEX_FORMAT,
+        extrudedHeight: extrudedHeight,
         height : height
       }),
       attributes : {
