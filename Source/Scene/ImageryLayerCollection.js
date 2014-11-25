@@ -6,10 +6,10 @@ define([
         '../Core/destroyObject',
         '../Core/DeveloperError',
         '../Core/Event',
-        '../Core/Rectangle',
         '../Core/Math',
-        './ImageryLayer',
-        '../ThirdParty/when'
+        '../Core/Rectangle',
+        '../ThirdParty/when',
+        './ImageryLayer'
     ], function(
         defaultValue,
         defined,
@@ -17,10 +17,10 @@ define([
         destroyObject,
         DeveloperError,
         Event,
-        Rectangle,
         CesiumMath,
-        ImageryLayer,
-        when) {
+        Rectangle,
+        when,
+        ImageryLayer) {
     "use strict";
 
     /**
@@ -178,7 +178,7 @@ define([
         destroy = defaultValue(destroy, true);
 
         var layers = this._layers;
-        for ( var i = 0, len = layers.length; i < len; i++) {
+        for (var i = 0, len = layers.length; i < len; i++) {
             var layer = layers[i];
             this.layerRemoved.raiseEvent(layer, i);
 
