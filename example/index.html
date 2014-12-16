@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Hello World!</title>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+  <script src="/jquery-ui-timepicker-addon.js"></script>
+  <script src="Cesium/Cesium.js"></script>
+  <script src="selectExtent.js"></script>
+  <script src="selectCircle.js"></script>
+  <script src="selectPolygon.js"></script>
+  <script src="selectLine.js"></script>
+  <script src="LoadState.js"></script>
+  <script src="bundle.js"></script> <!-- Created with 'browserify -r d3-gauge > bundle.js' -->
+  <script src="u8atostr.js"></script>
+  <script src="node_modules/binaryjs/dist/binary.min.js"></script>
+  <style>
+      @import url(Cesium/Widgets/CesiumWidget/CesiumWidget.css);
+      @import url(inactive.css);
+      @import url(active.css);
+      @import url(//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.css);
+      @import url(jquery-ui-timepicker-addon.css);
+
+      .ui-widget {
+          font-size: 10px;
+      }
+
+      #cesiumContainer {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          width: 100%;
+          margin: 0;
+          overflow: hidden;
+          padding: 0;
+          font-family: sans-serif;
+      }
+
+      #form {
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          background: rgba(0,0,0,.7);
+          padding: 3px;
+          border-radius: 5px;
+          border: 1px solid #555;
+          z-index: 5
+      }
+
+      #osd {
+          color: white;
+      }
+
+      #properties {
+          position: absolute;
+          top: 5px;
+          left: 5px;
+          color: white;
+          z-index: 5;
+          pointer-events: none;
+      }
+
+      #statistics {
+          position: absolute;
+          bottom: 5px;
+          right: 5px;
+          color: white;
+          z-index: 5;
+          pointer-events: none;
+      }
+
+      #stats-table {
+          width: 100%;
+      }
+
+      #button-table {
+          margin-left: auto;
+          margin-right: 0px;
+      }
+
+      #query-string {
+          position: absolute;
+          bottom: 25px;
+          left: 5px;
+          width: 40%;
+          pointer-events: none;
+      }
+
+      #query-entry {
+          width: 100%;
+      }
+
+      body {
+          padding: 0;
+          margin: 0;
+          overflow: hidden;
+      }
+  </style>
+  <script>
+
+// longitude, latitude
+//var initialPos = Cesium.Cartographic.fromDegrees(-122.347, 37.771);
+var initialPos = Cesium.Cartographic.fromDegrees(-87.6572,41.880263);
+//var initialPos = Cesium.Cartographic.fromDegrees(-81.5,28.3); // florida
+// meters away from the surface
+var initialZoom = 100000;
+// SCDB instance name, used in REST API queries
+var instanceName = 'db';
+// Range of valid values for datetime widget
+var dateRange = {minDate: new Date(2012, 9, 15), maxDate: new Date(2012, 11, 27, 23, 59, 59, 999)};
+
+var entityMap = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': '&quot;',
+  "'": '&#39;',
+  "/": '&#x2F;'
+};
+
+function escapeHtml(string) {
+  return String(string).replace(/[&<>"'\/]/g, function (s) {
+    return entityMap[s];
+  });
+};
+
+// Converts an array of pairs representing cartographic points (i.e. longlat) into an
+// array of Cesium Cartesian objects, representing points in 3D space
+function translateCoords(ellipsoid, cs) {
+  return ellipsoid.cartographicArrayToCartesianArray(cs.map(function(point) {return Cesium.Cartographic.fromDegrees(point[0], point[1], point[2])}));
+}
+
+// Render GeoJSON trivially as the geometry it describes
+function passthrough(ellipsoid, buffer, geoJson) {
+  var appearance = {};
+  appearance.color = Cesium.Color.fromBytes(120, 0, 0, 255);
+
+  var geom = geoJson.geometry;
+  switch(geom.type) {
+  case "Point":
+    //console.log(ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees(geom.coordinates[0], geom.coordinates[1], geom.coordinates[2])));
+    if (buffer.billboards.length == 0)
+        appearance.image = drawCircle(8, 1);
+    buffer.pushPoint(
+      ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees(geom.coordinates[0], geom.coordinates[1], geom.coordinates[2])),
+      geoJson, appearance);
+    break;
+
+  case "LineString":
+    if(geom.coordinates.length < 2) {
+      console.log("WARNING: Illegal LineString: ", geoJson);
+      return;
+    }
+    buffer.pushLines(
+      translateCoords(ellipsoid, geom.coordinates),
+      geoJson, appearance);
+    break;
+
+  case "Polygon":
+    if(geom.coordinates[0].length < 3) {
+      console.log("WARNING: Illegal polygon: ", geoJson);
+      return;
+    }
+    buffer.pushPolygon(
+      translateCoords(ellipsoid, geom.coordinates[0]),
+      geoJson, appearance);
+    break;
+
+  default:
+    throw "Unimplemented";
+  }
+}
+
+function def(value, otherwise) {
+  if(value == undefined) return otherwise;
+  return value;
+};
+
+function findInArray(a, x, o) {
+  for(var i = o; i < a.byteLength; ++i) {
+    if(a[i] === x) { return i; }
+  }
+  return -1;
+}
+
+// Create a circle using Canvas and return the resulting image
+// Suitable for use as a source for texture data
+function drawCircle(diameter, outlineWidth, fillColor, outlineColor) {
+  diameter = def(diameter, 3);
+  outlineWidth = def(outlineWidth, 2);
+  fillColor = def(fillColor, "#ffffff");
+  outlineColor = def(outlineColor, "#000000");
+
+  var canvas = document.createElement('canvas');
+
+  var length = diameter + (2 * outlineWidth);
+  canvas.height = canvas.width = length;
+
+  var context2D = canvas.getContext('2d');
+  context2D.clearRect(0, 0, length, length);
+
+  if (outlineWidth !== 0) {
+    context2D.beginPath();
+    context2D.arc(length / 2, length / 2, length / 2, 0, 2 * Math.PI, true);
+    context2D.closePath();
+    context2D.fillStyle = outlineColor;
+    context2D.fill();
+  }
+
+  context2D.beginPath();
+  context2D.arc(length / 2, length / 2, diameter / 2, 0, 2 * Math.PI, true);
+  context2D.closePath();
+  context2D.fillStyle = fillColor;
+  context2D.fill();
+
+  return canvas;
+};
+
+var gauge = require('d3-gauge');
+
+$.datepicker.setDefaults({ dateFormat : "yy-mm-dd" });
+
+$(function() {
+  // jQuery UI setup
+  $('#tabs').tabs();
+  $('#start-time').datetimepicker(dateRange);
+  $('#start-time').datetimepicker('setDate', dateRange.minDate);
+  $('#query-button').button();
+  $('#query-button').button("disable");
+  $('#clear-button').button();
+  $('#extent-select').button();
+  $('#circle-select').button();
+  $('#poly-select').button();
+  $('#line-select').button();
+  $('#file-chooser-button').button();
+  var cesiumWidget = new Cesium.CesiumWidget('cesiumContainer');
+  var ellipsoid = cesiumWidget.scene.globe.ellipsoid;
+
+  // Contains possible billboard icons
+  var atlas = new Cesium.TextureAtlas({ context :cesiumWidget.scene.context, image : drawCircle(8, 1) });
+  // To add an icon from any URL:
+  // var icon = new Image();
+  // icon.onload = function() { atlas.addImage(icon); }
+  // icon.src = urlGoesHere;
+  // Note that icons are identified by load order, so be careful to ensure they
+  // load in the same sequence every time
+  var buffer = new Cesium.GeometryBuffer(cesiumWidget.scene, atlas);
+
+  setInterval(function() {
+    if(buffer.pending() > 0) {
+      buffer.flush(256);
+    }
+  }, 125);
+
+  var recordsDisplay = $('#record-total');
+  var recordsPerSecGauge = gauge($('#record-rate-gauge')[0], { clazz: 'inactive', label : 'Records/s', max : 15000});
+  var gaugeElt = $('#record-rate-gauge')[0].firstChild;
+  function updateRecordDisplays(stream) {
+    recordsDisplay.html(stream.loaded);
+    recordsPerSecGauge.write((1000 * stream.loaded / ((new Date()).getTime() - stream.startTime)));
+  }
+
+  var client;
+  function connect() {
+    client = new BinaryClient('ws://' + document.location.host);
+    client.on('open', function () {
+      console.log('Connected');
+      $('#query-button').button("enable");
+    });
+
+    client.on('close', function() {
+      client = null;
+      console.log('Lost connection');
+      $('#query-button').button("disable");
+      gaugeElt.classList.remove('active');
+      gaugeElt.classList.add('inactive');
+      setTimeout(connect, 1000);
+    });
+  }
+  connect();
+
+  // Note: Parallel streams will fight for control of the statistics panel.
+  // Arguments:
+  // instance - SCDB instance name
+  // text - Text of query to execute
+  // bufferGeom - function taking arguments (ellipsoid, geometryBuffer, geoJson) which
+  //              handles each GeoJSON record, usually adding geometry to be rendered
+  //              to the GeometryBuffer
+  function doMultiQuery(instance, text, bufferGeom) {
+    var qLst = text.split('\n');
+    for (var i =0, len=qLst.length; i<len; i++)
+      {
+        var qstr = qLst[i];
+        if (qstr.search(";") !=-1)
+        {
+          doQuery(instance, qstr, bufferGeom);
+        }
+      }
+
+    };
+  function doQuery(instance, text, bufferGeom) {
+    $('#query-string').html(escapeHtml(text));
+    var req = { instance: instance, text: text };
+    console.log('Request:', req);
+    var start = (new Date()).getTime();
+    var stream = client.send(req);
+    var state = new LoadState(ellipsoid, buffer, bufferGeom);
+    gaugeElt.classList.remove('active');
+    gaugeElt.classList.add('inactive');
+
+    stream.on('data', function(buf) {
+      if(!(buf instanceof ArrayBuffer)) {
+        // Error message
+        cesiumWidget.showErrorPanel('Failed to perform query', 'Error ' + buf.error + ': ' + buf.message);
+        return;
+      }
+      state.consume(buf);
+      updateRecordDisplays(state);
+    });
+    stream.on('end', function() {
+      var dt = (new Date()).getTime() - start;
+      console.log('Request complete:', state.loaded, 'records,', dt, 'ms,', 1000 * state.loaded / dt, 'records/s');
+      updateRecordDisplays(state);
+      recordsPerSecGauge.write(0);
+      gaugeElt.classList.remove('active');
+      gaugeElt.classList.add('inactive');
+    });
+  }
+
+  var pickHandler = new Cesium.ScreenSpaceEventHandler(cesiumWidget.scene.canvas);
+  pickHandler.setInputAction(
+    function (movement) {
+      var pickedObject = cesiumWidget.scene.pick(movement.endPosition);
+      if(pickedObject && pickedObject.id) {
+        var text = "";
+        for(var key in pickedObject.id) {
+          text += escapeHtml(key) + ": " + escapeHtml(pickedObject.id[key]) + "<br/>";
+        }
+        $('#properties').html(text);
+      } else {
+        $('#properties').html("");
+      }
+    },
+    Cesium.ScreenSpaceEventType.MOUSE_MOVE
+  );
+
+  var geometryConstraint = null;
+  var selectionPrim = null;
+
+  var toDeg = Cesium.Math.toDegrees;
+  // Construct and initiate a query based on form values and area selected in response to area selection
+  function extentHandler(prim, e) {
+    $('#cesiumContainer')[0].style.cursor = 'auto';
+    selectionPrim = prim;
+
+    geometryConstraint = "t.\"geometry\".ST_intersects(ST_Geography('POLYGON((";
+    geometryConstraint += toDeg(e.west) + " " + toDeg(e.north) + ", ";
+    geometryConstraint += toDeg(e.west) + " " + toDeg(e.south) + ", ";
+    geometryConstraint += toDeg(e.east) + " " + toDeg(e.south) + ", ";
+    geometryConstraint += toDeg(e.east) + " " + toDeg(e.north) + ", ";
+    geometryConstraint += toDeg(e.west) + " " + toDeg(e.north);
+    geometryConstraint += "))'))";
+  }
+
+  function circleHandler(prim, center, radius) {
+    $('#cesiumContainer')[0].style.cursor = 'auto';
+    selectionPrim = prim;
+
+    geometryConstraint = 't."geometry".ST_Distance(ST_Point(' + toDeg(center.longitude) + ', ' + toDeg(center.latitude) + ')) <= ' + radius;
+  }
+
+  function polyHandler(prim, points) {
+    $('#cesiumContainer')[0].style.cursor = 'auto';
+    selectionPrim = prim;
+
+    geometryConstraint = "t.\"geometry\".ST_intersects(ST_Geography('POLYGON((";
+    for(var i = 0; i < points.length - 1; ++i) {
+      geometryConstraint += toDeg(points[i].longitude) + ' ' + toDeg(points[i].latitude) + ', ';
+    }
+    geometryConstraint += toDeg(points[points.length - 1].longitude) + ' ' + toDeg(points[points.length - 1].latitude) + "))'))";
+  }
+
+  function lineHandler(prim, points) {
+    $('#cesiumContainer')[0].style.cursor = 'auto';
+    selectionPrim = prim;
+
+    geometryConstraint = 't."geometry".ST_Distance(ST_Geography(\'LINESTRING((';
+    for(var i = 0; i < points.length - 1; ++i) {
+      geometryConstraint += toDeg(points[i].longitude) + ' ' + toDeg(points[i].latitude) + ', ';
+    }
+    geometryConstraint += toDeg(points[points.length - 1].longitude) + ' ' + toDeg(points[points.length - 1].latitude) + "))')) <= " + $('#line-width')[0].value;
+  }
+
+  function buildQuery() {
+    cesiumWidget.scene.primitives.remove(selectionPrim);
+    selectionPrim = null;
+
+    var input = $('#start-time').datetimepicker('getDate');
+
+    var month = 't.properties.initial_epoch_time ';
+    console.log(input)
+    // switch(input.getUTCMonth()) {
+    // case 9:
+    //   month += '< ' + (Date.UTC(2012, 10) / 1000);
+    //   break;
+
+    // case 10:
+    //   month += '>= ' + (Date.UTC(2012, 10) / 1000) + ' AND t.properties.initial_epoch_time < ' + (Date.UTC(2012, 11) / 1000);
+    //   break;
+
+    // case 11:
+    //   month += '>= ' + (Date.UTC(2012, 11) / 1000);
+    //   break;
+
+    // default:
+    //   throw "Month outside expected range";
+    // }
+    // var month = 't.properties.monthdayhr = CAST(' + input.getUTCDate() + ' AS UNSIGNED TINYINT)';
+    // var day = 't.properties.day = CAST(' + input.getUTCDate() + ' AS UNSIGNED TINYINT)';
+    // var hour = 't.properties.hour = CAST(' + input.getUTCHours() + ' AS UNSIGNED TINYINT)';
+    if (input != null){
+    var mdh = (input.getMonth()+1)*4464 + input.getDate()*144 + (input.getHours())*6
+    var mdh_str = 't.properties.monthdayhr = CAST(' + mdh + ' AS UNSIGNED SMALLINT)';
+
+    // // Order by increasing cost
+    var constraints = [mdh_str];
+    }else{
+      constraints = [];
+    }
+    if(geometryConstraint != null) {
+       constraints.push(geometryConstraint);
+     }
+
+    var query = 'SELECT * FROM schema.airsage_pnt AS t ';
+    
+    if(constraints.length > 0) {
+      query += ' WHERE ' + constraints[0];
+      for(var i = 1; i < constraints.length; i++) {
+        query += ' AND ' + constraints[i];
+      }
+    }
+    query += ';';
+
+    // Modify passthrough or replace it with another function to customize rendering of a query's results
+    doQuery(instanceName, query, passthrough);
+  }
+
+  $('#clear-button').click(function() {
+    buffer.clear();
+    recordsDisplay.html("0");
+    recordsPerSecGauge.write(0);
+    $('#query-string').html("");
+    if(client != null) {
+      var streamids = Object.keys(client.streams);
+      for(var i = 0; i < streamids.length; ++i) {
+        client.streams[streamids[i]].destroy();
+      }
+    }
+  });
+
+  $('#extent-select').click(function() {
+    if(selectionPrim) { cesiumWidget.scene.primitives.remove(selectionPrim); selectionPrim = null; }
+    $('#cesiumContainer')[0].style.cursor = 'crosshair';
+    selectExtent(cesiumWidget.scene, cesiumWidget.centralBody.ellipsoid, extentHandler);
+  });
+
+  $('#circle-select').click(function() {
+    if(selectionPrim) { cesiumWidget.scene.primitives.remove(selectionPrim); selectionPrim = null; }
+    $('#cesiumContainer')[0].style.cursor = 'crosshair';
+    selectCircle(cesiumWidget.scene, cesiumWidget.centralBody.ellipsoid, circleHandler);
+  });
+
+  $('#poly-select').click(function() {
+    if(selectionPrim) { cesiumWidget.scene.primitives.remove(selectionPrim); selectionPrim = null; }
+    $('#cesiumContainer')[0].style.cursor = 'crosshair';
+    selectPoly(cesiumWidget.scene, cesiumWidget.centralBody.ellipsoid, polyHandler);
+  });
+
+  $('#line-select').click(function() {
+    if(selectionPrim) { cesiumWidget.scene.primitives.remove(selectionPrim); selectionPrim = null; }
+    $('#cesiumContainer')[0].style.cursor = 'crosshair';
+    selectLine(cesiumWidget.scene, cesiumWidget.centralBody.ellipsoid, lineHandler);
+  });
+
+  $('#file-chooser-button').click(function() { $('#file-chooser')[0].click() });
+  $('#file-chooser').change(function() { $('#file-info').html(escapeHtml($('#file-chooser')[0].files[0].name)); });
+
+  var queryExec = function() {
+    doMultiQuery(instanceName, $('#query-entry')[0].value, passthrough);
+  };
+  $('#tabs').tabs({
+    activate: function(e, ui) {
+      switch(ui.newTab.context.hash) {
+      case '#query-builder':
+        queryExec = buildQuery;
+        break;
+      case '#manual-query':
+        queryExec = function() {
+          doMultiQuery(instanceName, $('#query-entry')[0].value, passthrough);
+        };
+        break;
+      case '#file-load':
+        queryExec = function() {
+          var file = $('#file-chooser')[0].files[0];
+          var reader = new FileReader();
+          var state = new LoadState(ellipsoid, buffer, passthrough);
+          reader.onload = function() {
+            state.consume(reader.result);
+            updateRecordDisplays(state);
+            recordsPerSecGauge.write(0);
+          }
+          reader.readAsArrayBuffer(file);
+        };
+        break;
+      }
+    }
+  });
+
+  $('#query-button').click(function() {
+    queryExec();
+  });
+
+  var camera = cesiumWidget.scene.camera;
+  camera.setPositionCartographic(initialPos);
+  camera.zoomOut(initialZoom);
+});
+  </script>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  <div id="osd">
+    <form id="form" action="" onsubmit="return false">
+      <div id="tabs">
+        <ul>
+          <li><a href="#manual-query">Manual Query</a></li>
+          <li><a href="#file-load">File Load</a></li>
+        </ul>
+        <div id="manual-query">
+          <textarea id="query-entry"></textarea>
+        </div>
+        <div id="file-load">
+          <input id="file-chooser" type="file" style="display:none">
+          <input id="file-chooser-button" type="button" value="Select SCDB output file...">
+          <div id="file-info"></div>
+        </div>
+      </div>
+      <table id="button-table">
+        <tr>
+          <td><input id="query-button" type="button" value="Query"></td>
+          <td><input id="clear-button" type="button" value="Clear"></td>
+        </tr>
+      </table>
+    </form>
+    <div id="query-string"></div>
+    <div id="properties"></div>
+    <div id="statistics">
+      <div id="record-rate-gauge"></div>
+      <table id="stats-table">
+        <tr><td>Total records:</td><td id="record-total">0</td></tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
