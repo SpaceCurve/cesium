@@ -131,10 +131,27 @@ function translateCoords(ellipsoid, cs) {
   return ellipsoid.cartographicArrayToCartesianArray(cs.map(function(point) {return Cesium.Cartographic.fromDegrees(point[0], point[1], point[2])}));
 }
 
+function getColor(d) {
+  var OPACITY = 0x55 ;
+  if( d > 100000 ) return Cesium.Color.fromBytes( 0x80, 0x00, 0x26, OPACITY ) ;
+  if( d > 50000  ) return Cesium.Color.fromBytes( 0xBD, 0x00, 0x26, OPACITY ) ;
+  if( d > 20000  ) return Cesium.Color.fromBytes( 0xE3, 0x1A, 0x1C, OPACITY ) ;
+  if( d > 10000  ) return Cesium.Color.fromBytes( 0xFC, 0x4E, 0x2A, OPACITY ) ;
+  if( d > 5000   ) return Cesium.Color.fromBytes( 0xFD, 0x8D, 0x3C, OPACITY ) ;
+  if( d > 2000   ) return Cesium.Color.fromBytes( 0xFE, 0xB2, 0x4C, OPACITY ) ;
+  if( d > 1000   ) return Cesium.Color.fromBytes( 0xFE, 0xD9, 0x76, OPACITY ) ;
+  return Cesium.Color.fromBytes( 0xFF, 0xED, 0xA0, OPACITY ) ;
+}
+
+
 // Render GeoJSON trivially as the geometry it describes
 function passthrough(ellipsoid, buffer, geoJson) {
   var appearance = {};
-  appearance.color = Cesium.Color.fromBytes(120, 0, 0, 255);
+  var zrc = geoJson.properties.POP2000;
+  if(zrc)
+    appearance.color = getColor(zrc);
+  else
+    appearance.color = Cesium.Color.fromBytes(120, 0, 0, 128);
 
   var geom = geoJson.geometry;
   switch(geom.type) {
