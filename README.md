@@ -12,7 +12,7 @@ Dependencies
 
 Before following these instructions, be sure you installed sample data by
 following the instructions in the **Add Sample Data** section of [QuickStart for
-SpaceCurve Virtual Machine](../../arcadapt/quickstart.md).
+SpaceCurve Virtual Machine](../../../arcadapt/quickstart.md).
 
 Run Examples
 ------------
