@@ -14,16 +14,24 @@ Before following these instructions, be sure you installed sample data by
 following the instructions in the **Add Sample Data** section of [QuickStart for
 SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md).
 
-Run Examples
-------------
+Run Example
+-----------
 
-You can use two browser-based examples in the SpaceCurve VM to show data stored in the SpaceCurve System. These examples use the ArcGIS REST API, which the ArcGIS Server Adapter translates into native SpaceCurve REST API calls. In these examples, you can zoom into and out of the map using the scroll wheel on the mouse.
+You can use a browser-based example in the SpaceCurve VM to show data as it arrives in the browser.
 
-### The hexbin Example
+In this example, the SpaceCurve VM operates as a server. Follow these steps to view the example:
 
-To run the hexbin example, enter this URL into the FireFox browser:
+1. Within the SpaceCurve VM, log in to account *spacecurve* using password *spacecurve*.
+2. On the desktop within the SpaceCurve VM, double-click the Terminal icon. A terminal window opens.
+3. In the terminal window, enter: ifconfig | grep 'inet addr'. 
+4. Using the mouse, select the first internet address you see. The internet address is four numbers separated by periods, probably starting with 192.168.
+5. From the menu, click **Edit**, and click **Copy**.
+6. In a FireFox browser on your host computer (not inside the VM), paste the internet address into the location bar, and press the **return** key.
 
-`http://localhost/examples/hexbin`
+Using the GeometryBuffer example
+================================
 
-The hexbin example shows areas where earthquakes have occurred. Areas with more earthquakes appear in a redder color. 
+This example lets you query data from the SpaceCurve System. If the data contains geospatial properties, this example will render its points or polygons onto the map. This example uses a timer to flush the GeometryBuffer frequently, while data streams from the SpaceCurve System into the browser.
+
+In this example, you can zoom into and out of the map using the scroll wheel on the mouse.
 
