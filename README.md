@@ -1,1 +1,1 @@
-[Cesium from AnalyticalGraphicsInc](../AnalyticalGraphicsInc/cesium)
+[Cesium from AnalyticalGraphicsInc](https://github.com/AnalyticalGraphicsInc/cesium)
