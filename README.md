@@ -34,3 +34,8 @@ This example lets you query data from the SpaceCurve System. If the data contain
 
 In this example, you can zoom into and out of the map using the scroll wheel on the mouse.
 
+
+select * from schema.us_counties where "properties"."POP2000" > 100000 ;
+SELECT * FROM schema.us_cities where "properties"."NAME" LIKE 'Se%' ; 
+select * from schema.us_counties;
+
