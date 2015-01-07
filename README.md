@@ -28,7 +28,7 @@ In this example, the SpaceCurve VM operates as a server. Follow these steps to v
 5. From the menu, click **Edit**, and click **Copy**.
 6. In a FireFox browser on your host computer (not inside the VM), paste the internet address into the location bar, and press the **return** key.
 
-### Using the GeometryBuffer example
+### Query data in the Example
 
 This example lets you query data from the SpaceCurve System. If the data contains geospatial properties, this example will render its points or polygons onto the map. This example uses a timer to flush the GeometryBuffer frequently, while data streams from the SpaceCurve System into the browser.
 
