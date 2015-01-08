@@ -23,6 +23,7 @@ Our Virtual Machine includes Node.js to run Cesium. To boot the Virtaul Machine 
 
 2. Double-click the Terminal icon at the top-center of the desktop, next to the Firefox icon. 
 3. In the terminal window, enter these commands:
+
     $ cd ~/cesium
     $ node server.js 5555
 
