@@ -10,10 +10,12 @@ These instructions describe the steps you will take to use this modified Cesium 
 Dependencies
 ------------
 
-Before following these instructions, be sure you installed sample data by
+* Before following these instructions, be sure you installed sample data by
 following the instructions in the **Add Sample Data** section of [QuickStart for
 SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md).
 
+* This example requires a browser that includes WebGL. A browser that runs [Cesium Demos](http://cesiumjs.org/) should also run this example.
+ 
 Run Example
 -----------
 
