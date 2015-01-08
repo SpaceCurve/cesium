@@ -15,7 +15,17 @@ following the instructions in the **Add Sample Data** section of [QuickStart for
 SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md).
 
 * This example requires a browser that includes WebGL. A browser that runs [Cesium Demos](http://cesiumjs.org/) should also run this example.
- 
+
+Run Cesium
+-----------
+
+Our Virtual Machine includes Node.js to run Cesium. To boot the Virtaul Machine and log in, follow steps in [QuickStart for SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md). Then follow these steps to start the Node.js server:
+
+2. Double-click the Terminal icon at the top-center of the desktop, next to the Firefox icon. 
+3. In the terminal window, enter these commands:
+    $ cd ~/cesium
+    $ node server.js 5555
+
 Run Example
 -----------
 
@@ -28,16 +38,18 @@ In this example, the SpaceCurve VM operates as a server. Follow these steps to v
 3. In the terminal window, enter: `ifconfig | grep 'inet addr'`. 
 4. Using the mouse, select the first internet address you see. The internet address is four numbers separated by periods. Yours will look something like *192.168.xx.xx*.
 5. From the menu, click **Edit**, and click **Copy**.
-6. In a FireFox browser on your host computer (not inside the VM), paste the internet address into the location bar, and press the **return** key.
+6. In a browser on your host computer (not inside the VM), paste the internet address into the location bar, add **:5555** to the address, and press the **return** key. The address in the browser will look *similar* to this:
+    192.168.11.11:5555
 
 ### Query data in the Example
 
 This example lets you query data from the SpaceCurve System. If the data contains geospatial properties, this example will render its points or polygons onto the map. This example uses a timer to flush the GeometryBuffer frequently, while data streams from the SpaceCurve System into the browser.
 
-In this example, you can zoom into and out of the map using the scroll wheel on the mouse.
+**Note:** In this example, you can zoom into and out of the map using the scroll wheel on the mouse.
 
+Enter one of these queries into the **Manual Query** field. You will see points or polygons appear on the map of the United States. Note that visual rendering begins before all of the data has arrived.
 
-`select * from schema.us_counties where "properties"."POP2000" > 100000 ;  
-SELECT * FROM schema.us_cities where "properties"."NAME" LIKE 'Se%' ;   
-select * from schema.us_counties;`
+    select * from schema.us_counties where "properties"."POP2000" > 100000 ;  
+    select * FROM schema.us_cities where "properties"."NAME" LIKE 'Se%' ;   
+    select * from schema.us_counties;`
 
