@@ -19,7 +19,7 @@ SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md).
 Run Cesium
 -----------
 
-Our Virtual Machine includes Node.js to run Cesium. To boot the Virtaul Machine and log in, follow steps in [QuickStart for SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md). Then follow these steps to start the Node.js server:
+Our Virtual Machine includes Node.js to run Cesium. To boot the Virtual Machine and log in, follow steps in [QuickStart for SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md). Then follow these steps to start the Node.js server:
 
 2. Double-click the Terminal icon at the top-center of the desktop, next to the Firefox icon. 
 3. In the terminal window, enter these commands:
