@@ -21,7 +21,7 @@ Run Cesium
 
 Our Virtual Machine includes Node.js to run Cesium. To boot the Virtual Machine and log in, follow steps in [QuickStart for SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md). Then follow these steps to start the Node.js server:
 
-2. Double-click the Terminal icon at the top-center of the desktop, next to the Firefox icon. 
+2. In the Virtual Machine, double-click the Terminal icon at the top-center of the desktop, next to the Firefox icon. 
 3. In the terminal window, enter these commands:
         $ cd ~/cesium
         $ node server.js 5555
@@ -33,7 +33,6 @@ You can use a browser-based example in the SpaceCurve VM to show data as it arri
 
 In this example, the SpaceCurve VM operates as a server. Follow these steps to view the example:
 
-1. Within the SpaceCurve VM, log in to account *spacecurve* using password *spacecurve*.
 2. On the desktop within the SpaceCurve VM, double-click the Terminal icon. A terminal window opens.
 3. In the terminal window, enter: `ifconfig | grep 'inet addr'`. 
 4. Using the mouse, select the first internet address you see. The internet address is four numbers separated by periods. Yours will look something like *192.168.xx.xx*.
@@ -45,11 +44,11 @@ In this example, the SpaceCurve VM operates as a server. Follow these steps to v
 
 This example lets you query data from the SpaceCurve System. If the data contains geospatial properties, this example will render its points or polygons onto the map. This example uses a timer to flush the GeometryBuffer frequently, while data streams from the SpaceCurve System into the browser.
 
-**Note:** In this example, you can zoom into and out of the map using the scroll wheel on the mouse.
-
 Enter one of these queries into the **Manual Query** field. You will see points or polygons appear on the map of the United States. Note that visual rendering begins before all of the data has arrived.
 
-    select * from schema.us_counties where "properties"."POP2000" > 100000 ;  
-    select * FROM schema.us_cities where "properties"."NAME" LIKE 'Se%' ;   
-    select * from schema.us_counties;`
+    select * from schema.us_counties;
+    select * FROM schema.us_cities where "properties"."NAME" LIKE 'S%' ;   
+    select * from schema.us_counties where "properties"."POP2000" > 10000 ;  
+
+This example shows points as dots, and shades polygons according to their POP2000 property value. In this example, you can zoom into and out of the map using the scroll wheel on the mouse.
 
