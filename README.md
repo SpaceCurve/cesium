@@ -16,8 +16,8 @@ SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md).
 
 * This example requires a browser that includes WebGL. A browser that runs [Cesium Demos](http://cesiumjs.org/) should also run this example.
 
-Run Cesium
------------
+Run Node.js to host Cesium
+--------------------------
 
 Our Virtual Machine includes Node.js to run Cesium. To boot the Virtual Machine and log in, follow steps in [QuickStart for SpaceCurve Virtual Machine](../../../arcadapt/blob/master/quickstart.md). Then follow these steps to start the Node.js server:
 
@@ -26,8 +26,8 @@ Our Virtual Machine includes Node.js to run Cesium. To boot the Virtual Machine 
         $ cd ~/cesium
         $ node server.js 5555
 
-Run Example
------------
+Run Example in Client Browser
+-----------------------------
 
 You can use a browser-based example in the SpaceCurve VM to show data as it arrives in the browser.
 
