@@ -35,7 +35,8 @@ You can use a browser-based example in the SpaceCurve VM to show data as it arri
 In this example, the SpaceCurve VM operates as a server. Follow these steps to view the example:
 
 2. On the desktop within the SpaceCurve VM, double-click the Terminal icon. A terminal window opens.
-3. In the terminal window, enter: `ifconfig | grep 'inet addr'`. 
+3. In the terminal window, enter:
+        ifconfig | grep 'inet addr'`
 4. Using the mouse, select the first internet address you see. The internet address is four numbers separated by periods. Yours will look something like *192.168.xx.xx*.
 5. From the menu, click **Edit**, and click **Copy**.
 6. In a browser on your host computer (not inside the VM), paste the internet address into the location bar, add **:5555** to the address, and press the **return** key. The address in the browser will look *similar* to this:
