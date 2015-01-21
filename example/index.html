@@ -284,12 +284,14 @@ $(function() {
     client.on('open', function () {
       console.log('Connected');
       $('#query-button').button("enable");
+      $('#clear-button').button("enable");
     });
 
     client.on('close', function() {
       client = null;
       console.log('Lost connection');
       $('#query-button').button("disable");
+      $('#clear-button').button("disable");
       gaugeElt.classList.remove('active');
       gaugeElt.classList.add('inactive');
       setTimeout(connect, 1000);
@@ -317,6 +319,10 @@ $(function() {
 
     };
   function doQuery(instance, text, bufferGeom) {
+
+    $('#query-button').button("disable") ;
+    $('#clear-button').button("disable") ;
+
     $('#query-string').html(escapeHtml(text));
     var req = { instance: instance, text: text };
     console.log('Request:', req);
@@ -342,6 +348,10 @@ $(function() {
       recordsPerSecGauge.write(0);
       gaugeElt.classList.remove('active');
       gaugeElt.classList.add('inactive');
+
+      $('#query-button').button("enable") ;
+      $('#clear-button').button("enable") ;
+
     });
   }
 
@@ -474,6 +484,10 @@ $(function() {
         client.streams[streamids[i]].destroy();
       }
     }
+
+    $('#query-button').button("enable") ;
+    $('#clear-button').button("enable") ;
+
   });
 
   $('#extent-select').click(function() {
