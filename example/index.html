@@ -151,14 +151,14 @@ function passthrough(ellipsoid, buffer, geoJson) {
   if(zrc)
     appearance.color = getColor(zrc);
   else
-    appearance.color = Cesium.Color.fromBytes(120, 0, 0, 128);
+    appearance.color = Cesium.Color.fromBytes(120, 0, 0, 255);
 
   var geom = geoJson.geometry;
   switch(geom.type) {
   case "Point":
     //console.log(ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees(geom.coordinates[0], geom.coordinates[1], geom.coordinates[2])));
     if (buffer.billboards.length == 0)
-        appearance.image = drawCircle(8, 1);
+        appearance.image = drawCircle(8, 0);
     buffer.pushPoint(
       ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees(geom.coordinates[0], geom.coordinates[1], geom.coordinates[2])),
       geoJson, appearance);
